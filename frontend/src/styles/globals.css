@@ -1,0 +1,328 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-secondary: var(--secondary);
+  --color-node-dot: var(--node-dot);
+}
+
+body {
+  font-family: var(--font-sans), 'Plus Jakarta Sans', sans-serif;
+}
+
+.font-mono-labels {
+  font-family: var(--font-mono-ui), 'JetBrains Mono', monospace;
+}
+
+/* ── Gradient utilities (3-stop: icy-cyan → silver-blue → violet) ── */
+.gradient-accent {
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-mid) 55%, var(--gradient-end) 100%);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-mid) 55%, var(--gradient-end) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ── Page background with ambient radial glows ── */
+.page-bg {
+  background:
+    radial-gradient(ellipse 60% 50% at 85% 12%, var(--glow-top-right), transparent 60%),
+    radial-gradient(ellipse 55% 50% at 10% 90%, var(--glow-bottom-left), transparent 60%),
+    var(--surface);
+}
+
+/* ── Glassmorphic base card ── */
+.glass-card {
+  background: var(--card-bg);
+  border: 1.5px solid var(--card-border-color);
+  border-radius: 18px;
+  backdrop-filter: blur(14px);
+}
+
+/* ── Track card ── */
+.track-card {
+  background: var(--card-bg);
+  border: 1.5px solid var(--card-border-color);
+  border-radius: 18px;
+  backdrop-filter: blur(14px);
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s;
+}
+.track-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--card-shadow-hover);
+  border-color: var(--card-border-hover);
+}
+.track-card.locked {
+  opacity: 0.58;
+  cursor: default;
+}
+.track-card.locked:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--card-border-color);
+}
+
+/* ── Module card ── */
+.module-card {
+  background: var(--module-card-bg);
+  border: 1.5px solid var(--card-border-color);
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+  padding: 18px 20px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.module-card.is-current {
+  border-color: var(--module-border-cur);
+  box-shadow: var(--module-shadow-cur);
+}
+
+/* ── Progress bar ── */
+.progress-track {
+  border-radius: 99px;
+  background: var(--progress-rail);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid), var(--gradient-end));
+}
+
+/* ── Tag chip ── */
+.tag-chip {
+  font-family: var(--font-mono-ui), 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  background: rgba(140, 160, 200, 0.16);
+  color: #5B73A0;
+}
+.dark .tag-chip {
+  background: rgba(125, 200, 235, 0.12);
+  color: #9BB8E0;
+}
+
+/* ── Brushed-platinum small CTA button (cards) ── */
+.btn-cta-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  background: var(--cta-btn-bg);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 9px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.18s;
+  flex-shrink: 0;
+  box-shadow: var(--cta-btn-shadow);
+  text-shadow: 0 1px 0 rgba(40, 60, 90, 0.18);
+  text-decoration: none;
+}
+.dark .btn-cta-sm {
+  border-color: rgba(180, 200, 235, 0.30);
+}
+.btn-cta-sm:hover {
+  transform: translateX(2px);
+  box-shadow: var(--cta-btn-shadow-hover);
+}
+
+/* ── Full-width CTA button (auth forms) ── */
+.cta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 52px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  background: var(--cta-btn-bg);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s, box-shadow 0.18s;
+  box-shadow: var(--cta-btn-shadow);
+  text-shadow: 0 1px 0 rgba(40, 60, 90, 0.18);
+}
+.dark .cta-btn {
+  border-color: rgba(180, 200, 235, 0.30);
+}
+.cta-btn:hover {
+  transform: translateY(-1.5px);
+  box-shadow: var(--cta-btn-shadow-hover);
+}
+.cta-btn:active {
+  transform: scale(0.985);
+}
+.cta-btn:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* ── Platform header ── */
+.platform-header {
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--header-border);
+  backdrop-filter: blur(16px);
+}
+
+/* ── Thin vertical divider for inline header sections ── */
+.header-sep {
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  background: var(--header-border);
+  flex-shrink: 0;
+}
+
+/* ── Module sidebar (shared by ModuleSidebar + SimulatorConfigPanel) ── */
+.module-sidebar {
+  background: var(--card-bg);
+  border-right: 1px solid var(--header-border);
+  backdrop-filter: blur(12px);
+}
+
+/* ── Module right panel (problem description, etc.) ── */
+.module-panel-right {
+  background: var(--card-bg);
+  border-left: 1px solid var(--header-border);
+  backdrop-filter: blur(12px);
+}
+
+/* ── Back link ── */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--muted);
+  transition: color 0.15s;
+}
+.back-link:hover {
+  color: var(--foreground);
+}
+
+/* ── User avatar circle ── */
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid), var(--gradient-end));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* ── Locked Pro badge ── */
+.locked-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono-ui), 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: rgba(140, 160, 200, 0.14);
+  color: #5B73A0;
+  border: 1px solid rgba(140, 160, 200, 0.26);
+}
+.dark .locked-badge {
+  background: rgba(125, 200, 235, 0.10);
+  border-color: rgba(125, 200, 235, 0.22);
+  color: #9BB8E0;
+}
+
+/* ── Sparse mesh canvas opacity ── */
+.sparse-mesh {
+  opacity: 0.65;
+}
+.dark .sparse-mesh {
+  opacity: 0.90;
+}
+
+/* ── Entrance animations ── */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes card-anim-kf {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-anim {
+  animation: card-anim-kf 0.38s ease both;
+  animation-delay: var(--delay, 0ms);
+}
+
+.fade-in {
+  animation: fade-in-up 0.35s ease both;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(140, 160, 200, 0.25);
+  border-radius: 3px;
+}
