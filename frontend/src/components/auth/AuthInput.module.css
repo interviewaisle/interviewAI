@@ -1,0 +1,16 @@
+.input {
+  border: 1.5px solid var(--input-border);
+  background: var(--input-bg);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input:focus {
+  border-color: transparent;
+  background-image:
+    linear-gradient(var(--input-bg-solid), var(--input-bg-solid)),
+    linear-gradient(135deg, var(--gradient-start), var(--gradient-mid), var(--gradient-end));
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 0 0 3px var(--input-focus-ring);
+}

@@ -39,7 +39,7 @@ export async function tracksRoutes(app: FastifyInstance) {
     const { trackId } = req.params as { trackId: string }
 
     const modules = await sql`
-      SELECT id, stage_index, tier_type, company_tags, created_at
+      SELECT id, track_id, stage_index, tier_type, company_tags, content_payload, created_at
       FROM modules
       WHERE track_id = ${trackId}
       ORDER BY stage_index ASC

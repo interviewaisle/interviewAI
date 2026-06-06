@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>InterviewAI — Auth</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { darkMode: 'class' };
+  (function () {
+    try {
+      const t = localStorage.getItem('iai-theme');
+      if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      }
+    } catch (e) { document.documentElement.classList.add('dark'); }
+  })();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body, #root { height: 100%; }
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Backgrounds ── */
+  .page-bg        {
+    background:
+      radial-gradient(ellipse 60% 50% at 85% 12%, rgba(160,180,220,0.18), transparent 60%),
+      radial-gradient(ellipse 55% 50% at 10% 90%, rgba(140,170,210,0.14), transparent 60%),
+      #F7F9FC;
+  }
+  .dark .page-bg  {
+    background:
+      radial-gradient(ellipse 70% 55% at 88% 12%, rgba(130,90,200,0.16), transparent 60%),
+      radial-gradient(ellipse 60% 55% at 12% 92%, rgba(40,160,220,0.12), transparent 60%),
+      #060B14;
+  }
+
+  /* ── Inputs ── */
+  .nxs-input {
+    width: 100%;
+    height: 52px;
+    border-radius: 12px;
+    border: 1.5px solid rgba(203,213,228,0.9);
+    background: linear-gradient(135deg, rgba(255,255,255,0.94), rgba(245,248,253,0.86));
+    color: #0F172A;
+    font-family: inherit;
+    font-size: 14.5px;
+    padding: 0 44px 0 16px;
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+    backdrop-filter: blur(4px);
+  }
+  .nxs-input::placeholder { color: #64748B; }
+  .nxs-input:focus {
+    border-color: transparent;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.95), rgba(255,255,255,0.95)),
+      linear-gradient(135deg, #5DC9DF, #A78BFA);
+    background-origin: padding-box, border-box;
+    background-clip: padding-box, border-box;
+    box-shadow: 0 0 0 3px rgba(140,160,220,0.14);
+  }
+
+  .dark .nxs-input {
+    border-color: rgba(80,120,170,0.45);
+    background: linear-gradient(135deg, rgba(20,30,50,0.85), rgba(18,46,72,0.72));
+    color: #F1F5F9;
+    backdrop-filter: blur(10px);
+  }
+  .dark .nxs-input::placeholder { color: #94A3B8; }
+  .dark .nxs-input:focus {
+    background-image:
+      linear-gradient(135deg, rgba(20,30,50,0.92), rgba(18,46,72,0.82)),
+      linear-gradient(135deg, #5DC9DF, #A78BFA);
+    background-origin: padding-box, border-box;
+    background-clip: padding-box, border-box;
+    box-shadow: 0 0 0 3px rgba(140,160,220,0.20);
+  }
+
+  /* ── CTA Button — brushed platinum → slate metallic ── */
+  .btn-cta {
+    width: 100%;
+    height: 52px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.45);
+    background: linear-gradient(180deg, #DCE6F2 0%, #B0C2DD 32%, #7B95BC 70%, #54719C 100%);
+    color: #fff;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: opacity 0.18s, transform 0.15s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.55),
+      inset 0 -1px 0 rgba(40,60,90,0.18),
+      0 6px 18px -4px rgba(80,110,160,0.30);
+    text-shadow: 0 1px 0 rgba(40,60,90,0.18);
+  }
+  .dark .btn-cta {
+    border-color: rgba(180,200,235,0.30);
+    background: linear-gradient(180deg, #C8D5EC 0%, #8FA6CB 32%, #5C7BA8 70%, #3E5887 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.45),
+      inset 0 -1px 0 rgba(10,20,40,0.30),
+      0 8px 22px -4px rgba(60,90,150,0.45);
+  }
+  .btn-cta::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.30) 0%, transparent 55%);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .btn-cta:hover:not(:disabled)::after { opacity: 1; }
+  .btn-cta:hover:not(:disabled) {
+    transform: translateY(-1.5px);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.55),
+      inset 0 -1px 0 rgba(40,60,90,0.18),
+      0 14px 36px -6px rgba(80,110,160,0.55);
+  }
+  .btn-cta:active:not(:disabled) { transform: translateY(0) scale(0.985); }
+  .btn-cta:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* ── OAuth rows ── */
+  .oauth-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    padding: 6px 0;
+    transition: color 0.15s;
+    background: none;
+    border: none;
+    font-family: inherit;
+    text-decoration: none;
+  }
+  .oauth-row:hover { color: #111827; }
+  .dark .oauth-row { color: #CBD5E1; }
+  .dark .oauth-row:hover { color: #F1F5F9; }
+
+  /* ── Gradient text — icy cyan → silver → violet ── */
+  .grad-text {
+    background: linear-gradient(135deg, #5DC9DF 0%, #8FA8E0 55%, #A78BFA 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Spinner ── */
+  @keyframes spin-cw { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 17px; height: 17px; flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin-cw 0.65s linear infinite;
+    display: inline-block;
+  }
+
+  /* ── Field slide-in/out ── */
+  .field-wrap {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+  }
+  .field-wrap.visible {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+  .field-wrap > div { overflow: hidden; }
+
+  /* ── Heading transition ── */
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .heading-anim { animation: fade-in-up 0.38s ease both; }
+
+  /* ── Error text ── */
+  .err-text {
+    font-size: 11.5px;
+    color: #B91C1C;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 500;
+  }
+
+  /* ── Node dot (input connector) ── */
+  .node-dot {
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(120,160,210,0.55);
+    transition: background 0.2s, box-shadow 0.2s;
+    pointer-events: none;
+  }
+  .dark .node-dot {
+    background: #7DD3F0;
+    box-shadow: 0 0 7px rgba(125,211,240,0.85), 0 0 14px rgba(167,139,250,0.40);
+  }
+  .node-line {
+    position: absolute;
+    left: -34px;
+    top: 50%;
+    width: 14px;
+    height: 1px;
+    background: rgba(120,160,210,0.30);
+    transform-origin: right center;
+    pointer-events: none;
+  }
+  .dark .node-line { background: rgba(125,211,240,0.35); }
+
+  /* ── Eye button ── */
+  .eye-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #6B7280;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+    padding: 4px;
+  }
+  .eye-btn:hover { color: #7B95BC; }
+  .dark .eye-btn { color: #94A3B8; }
+  .dark .eye-btn:hover { color: #7DD3F0; }
+
+  /* ── Divider ── */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #6B7280;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .dark .divider { color: #64748B; }
+  .divider-line { flex: 1; height: 1px; background: currentColor; }
+
+  /* ── Theme toggle ── */
+  .theme-btn {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    border: 1px solid rgba(203,213,228,0.6);
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  }
+  .theme-btn:hover { transform: scale(1.08); background: rgba(255,255,255,0.92); }
+  .dark .theme-btn {
+    border-color: rgba(80,120,170,0.35);
+    background: rgba(14,22,42,0.72);
+    color: #CBD5E1;
+  }
+  .dark .theme-btn:hover { background: rgba(20,32,58,0.9); }
+
+  /* ── Password strength ── */
+  .pw-segment {
+    flex: 1;
+    height: 3px;
+    border-radius: 99px;
+    transition: background 0.3s;
+  }
+
+  .dark .err-text { color: #FCA5A5; }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-thumb { background: rgba(140,160,200,0.25); border-radius: 3px; }
+</style>
+</head>
+<body style="font-family: &quot;Plus Jakarta Sans&quot;">
+<div id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+/* ══════════════════════════════════════
+   SPARSE MESH CANVAS
+   Long-range connections, distance-faded
+   edges — matches reference aesthetic.
+══════════════════════════════════════ */
+function NeuralCanvas({ isDark }) {
+  const cvRef   = useRef(null);
+  const animRef = useRef(null);
+  const stRef   = useRef(null);
+
+  const init = useCallback(() => {
+    const cv = cvRef.current; if (!cv) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = cv.clientWidth, h = cv.clientHeight;
+    cv.width = w * dpr; cv.height = h * dpr;
+    cv.getContext('2d').scale(dpr, dpr);
+    stRef.current = {
+      w, h,
+      pts: Array.from({ length: 42 }, () => ({
+        x:  Math.random() * w,
+        y:  Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.22,
+        vy: (Math.random() - 0.5) * 0.22,
+        r:  1.3 + Math.random() * 1.6,
+        ph: Math.random() * Math.PI * 2,
+      })),
+    };
+  }, []);
+
+  useEffect(() => {
+    init();
+    const ro = new ResizeObserver(init);
+    if (cvRef.current) ro.observe(cvRef.current);
+
+    const tick = () => {
+      const st = stRef.current;
+      if (!st) { animRef.current = requestAnimationFrame(tick); return; }
+      const { pts, w, h } = st;
+      const cv = cvRef.current; if (!cv) return;
+      const ctx = cv.getContext('2d');
+      ctx.clearRect(0, 0, w, h);
+
+      const MAXD = Math.min(w, h) * 0.40;
+
+      pts.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.ph += 0.006;
+        if (p.x < 0 || p.x > w) p.vx *= -1;
+        if (p.y < 0 || p.y > h) p.vy *= -1;
+      });
+
+      /* Edges — distance-faded, no triangle fills; alternating cyan/violet in dark */
+      ctx.lineWidth = 0.75;
+      for (let i = 0; i < pts.length; i++) {
+        for (let j = i + 1; j < pts.length; j++) {
+          const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < MAXD) {
+            const t = d / MAXD;
+            const a = isDark
+              ? (0.36 * (1 - t * t)).toFixed(3)
+              : (0.18 * (1 - t * t)).toFixed(3);
+            const violet = (i + j) % 3 === 0;
+            ctx.beginPath();
+            ctx.moveTo(pts[i].x, pts[i].y);
+            ctx.lineTo(pts[j].x, pts[j].y);
+            ctx.strokeStyle = isDark
+              ? (violet ? `rgba(170,150,235,${a})` : `rgba(125,200,235,${a})`)
+              : `rgba(110,148,190,${a})`;
+            ctx.stroke();
+          }
+        }
+      }
+
+      /* Nodes */
+      pts.forEach((p, i) => {
+        const g = (Math.sin(p.ph) + 1) * 0.5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r * (0.85 + g * 0.32), 0, Math.PI * 2);
+        const violet = i % 4 === 0;
+        ctx.fillStyle = isDark
+          ? (violet
+              ? `rgba(190,170,240,${(0.58 + g * 0.28).toFixed(3)})`
+              : `rgba(155,210,240,${(0.55 + g * 0.28).toFixed(3)})`)
+          : `rgba(110,148,190,${(0.32 + g * 0.14).toFixed(3)})`;
+        ctx.fill();
+      });
+
+      animRef.current = requestAnimationFrame(tick);
+    };
+
+    tick();
+    return () => { ro.disconnect(); cancelAnimationFrame(animRef.current); };
+  }, [isDark, init]);
+
+  return (
+    <canvas ref={cvRef}
+            style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0, opacity: isDark ? 0.9 : 0.65 }} />
+  );
+}
+
+/* ══════════════════════════════════════
+   ICONS
+══════════════════════════════════════ */
+const Svg = ({ s = 18, sw = 1.8, children }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} viewBox="0 0 24 24"
+       fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {children}
+  </svg>
+);
+const IconSun     = p => <Svg {...p}><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></Svg>;
+const IconMoon    = p => <Svg {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></Svg>;
+const IconEye     = p => <Svg {...p}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></Svg>;
+const IconEyeOff  = p => <Svg {...p}><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c6.5 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3.5 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></Svg>;
+const IconArrow   = p => <Svg {...p}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></Svg>;
+const IconCheck   = p => <Svg {...p}><polyline points="20,6 9,17 4,12"/></Svg>;
+
+const IconGoogle = ({ s = 18 }) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.5c-.3 1.5-1.1 2.7-2.4 3.5v2.9h3.9c2.3-2.1 3.5-5.2 3.5-8.5z"/>
+    <path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.9-2.9c-1.1.7-2.4 1.1-4 1.1-3.1 0-5.7-2.1-6.6-4.9H1.4v3C3.4 21.2 7.4 24 12 24z"/>
+    <path fill="#FBBC05" d="M5.4 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.6.4-2.4V6.7H1.4A11.9 11.9 0 0 0 0 12c0 1.9.5 3.7 1.4 5.3l4-3z"/>
+    <path fill="#EA4335" d="M12 4.8c1.7 0 3.3.6 4.5 1.8l3.4-3.4C17.9 1.2 15.2 0 12 0 7.4 0 3.4 2.8 1.4 6.7l4 3C6.3 6.9 8.9 4.8 12 4.8z"/>
+  </svg>
+);
+
+const IconGithub = ({ s = 18 }) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.4.6.1.82-.26.82-.58v-2.02c-3.34.72-4.04-1.61-4.04-1.61-.55-1.4-1.34-1.77-1.34-1.77-1.1-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.08 1.84 2.82 1.31 3.51 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02 0 2.05.14 3 .4 2.28-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/>
+  </svg>
+);
+
+/* ══════════════════════════════════════
+   LOGO MARK
+══════════════════════════════════════ */
+const Logo = ({ isDark }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <defs>
+        <linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#5DC9DF"/>
+          <stop offset="55%" stopColor="#8FA8E0"/>
+          <stop offset="100%" stopColor="#A78BFA"/>
+        </linearGradient>
+      </defs>
+      <path d="M16 1L30 9V23L16 31L2 23V9Z" stroke="url(#lg)" strokeWidth="1.2" fill="none"/>
+      <path d="M9 22L13.5 11L18 22M11 18.5H16" stroke="url(#lg)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <line x1="21" y1="11" x2="21" y2="22" stroke="url(#lg)" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+    <span style={{
+      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+      fontSize: 14,
+      fontWeight: 600,
+      letterSpacing: '-0.01em',
+      color: isDark ? '#F1F5F9' : '#0F172A',
+    }}>
+      InterviewAI
+    </span>
+  </div>
+);
+
+/* ══════════════════════════════════════
+   INPUT FIELD
+══════════════════════════════════════ */
+function Field({ id, label, type = 'text', value, onChange, onBlur, error, autoComplete, placeholder, rightSlot, show }) {
+  return (
+    <div className={`field-wrap${show ? ' visible' : ''}`}>
+      <div>
+        <div style={{ paddingBottom: 1 }}>
+          {label && (
+            <label htmlFor={id} style={{
+              display: 'block',
+              fontSize: 11,
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              marginBottom: 8,
+              color: 'var(--lbl)',
+            }}>{label}</label>
+          )}
+          <div style={{ position: 'relative', paddingLeft: 36 }}>
+            <div className="node-line"></div>
+            <div className="node-dot"></div>
+            <input
+              id={id} type={type} value={value}
+              onChange={onChange} onBlur={onBlur}
+              autoComplete={autoComplete} placeholder={placeholder}
+              className="nxs-input"
+              style={error ? { borderColor: '#F87171' } : {}}
+            />
+            {rightSlot && (
+              <div style={{ position: 'absolute', right: 0, top: 0, height: '100%', display: 'flex', alignItems: 'center' }}>
+                {rightSlot}
+              </div>
+            )}
+          </div>
+          {error && <p className="err-text"><span style={{ fontSize: 8 }}>●</span>{error}</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════
+   ALWAYS-VISIBLE FIELD (no collapse)
+══════════════════════════════════════ */
+function AlwaysField({ id, label, type = 'text', value, onChange, onBlur, error, autoComplete, placeholder, rightSlot }) {
+  return (
+    <div>
+      {label && (
+        <label htmlFor={id} style={{
+          display: 'block',
+          fontSize: 11,
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: '0.1em',
+          marginBottom: 8,
+          color: 'var(--lbl)',
+        }}>{label}</label>
+      )}
+      <div style={{ position: 'relative', paddingLeft: 36 }}>
+        <div className="node-line"></div>
+        <div className="node-dot"></div>
+        <input
+          id={id} type={type} value={value}
+          onChange={onChange} onBlur={onBlur}
+          autoComplete={autoComplete} placeholder={placeholder}
+          className="nxs-input"
+          style={error ? { borderColor: '#F87171' } : {}}
+        />
+        {rightSlot && (
+          <div style={{ position: 'absolute', right: 0, top: 0, height: '100%', display: 'flex', alignItems: 'center' }}>
+            {rightSlot}
+          </div>
+        )}
+      </div>
+      {error && <p className="err-text"><span style={{ fontSize: 8 }}>●</span>{error}</p>}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════
+   PASSWORD STRENGTH
+══════════════════════════════════════ */
+const PW_LABELS = ['', 'Weak', 'Fair', 'Strong', 'Excellent'];
+function pwScore(p) {
+  if (!p || p.length < 8) return 0;
+  let s = 1;
+  if (p.length >= 12) s++;
+  if (/[A-Z]/.test(p) && /[a-z]/.test(p)) s++;
+  if (/\d/.test(p) && /[^A-Za-z0-9]/.test(p)) s++;
+  return Math.min(s, 4);
+}
+const PW_COLORS = { 0: '#1E2130', 1: '#F87171', 2: '#FBBF24', 3: '#7DD3F0', 4: '#A78BFA' };
+
+/* ══════════════════════════════════════
+   MAIN APP
+══════════════════════════════════════ */
+const emailOk = s => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s.trim());
+const STEPS   = ['Verifying credentials…', 'Connecting to AI Core…', 'Launching session…'];
+
+function App() {
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+  const toggleTheme = useCallback(() => {
+    setIsDark(d => {
+      const next = !d;
+      document.documentElement.classList.toggle('dark', next);
+      document.documentElement.style.setProperty('--lbl', next ? '#94A3B8' : '#475569');
+      try { localStorage.setItem('iai-theme', next ? 'dark' : 'light'); } catch {}
+      return next;
+    });
+  }, []);
+
+  // Set initial CSS var
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      '--lbl',
+      isDark ? '#94A3B8' : '#475569'
+    );
+  }, []);
+
+  const [isLogin,   setIsLogin]   = useState(true);
+  const [name,      setName]      = useState('');
+  const [email,     setEmail]     = useState('');
+  const [password,  setPassword]  = useState('');
+  const [confirm,   setConfirm]   = useState('');
+  const [showPw,    setShowPw]    = useState(false);
+  const [showPw2,   setShowPw2]   = useState(false);
+  const [touched,   setTouched]   = useState({});
+  const [submitted, setSubmitted] = useState(false);
+  const [loading,   setLoading]   = useState(false);
+  const [step,      setStep]      = useState(0);
+  const [success,   setSuccess]   = useState(false);
+
+  const touch = f => setTouched(t => ({ ...t, [f]: true }));
+
+  const errs = useMemo(() => {
+    const e = {};
+    if (touched.email || submitted) {
+      if (!email)           e.email = 'Email is required.';
+      else if (!emailOk(email)) e.email = 'Enter a valid email address.';
+    }
+    if (touched.pw || submitted) {
+      if (!password)          e.pw = 'Password is required.';
+      else if (password.length < 8) e.pw = 'Minimum 8 characters.';
+    }
+    if (!isLogin && (touched.confirm || submitted)) {
+      if (!confirm)           e.confirm = 'Please confirm your password.';
+      else if (confirm !== password) e.confirm = "Passwords don't match.";
+    }
+    return e;
+  }, [email, password, confirm, isLogin, touched, submitted]);
+
+  const handleSubmit = e => {
+    e.preventDefault();
+    setSubmitted(true);
+    if (!email || !emailOk(email)) return;
+    if (!password || password.length < 8) return;
+    if (!isLogin && confirm !== password) return;
+
+    setLoading(true); setStep(0);
+    let i = 0;
+    const id = setInterval(() => {
+      i++;
+      if (i >= STEPS.length) {
+        clearInterval(id);
+        setSuccess(true);
+        setTimeout(() => { setLoading(false); setSuccess(false); setSubmitted(false); }, 1600);
+      } else { setStep(i); }
+    }, 850);
+  };
+
+  const switchMode = next => {
+    if (next === isLogin) return;
+    setIsLogin(next); setSubmitted(false); setTouched({});
+    setName(''); setEmail(''); setPassword(''); setConfirm('');
+  };
+
+  const score  = pwScore(password);
+  const txCol  = isDark ? '#F1F5F9' : '#0F172A';   // platinum / charcoal
+  const mtCol  = isDark ? '#CBD5E1' : '#475569';   // silver / slate
+  const sbCol  = isDark ? '#94A3B8' : '#64748B';   // ~7.5:1 / ~4.8:1
+
+  const eyeBtn = (show, toggle) => (
+    <button type="button" onClick={toggle} className="eye-btn" aria-label={show ? 'Hide' : 'Show'}>
+      {show ? <IconEyeOff s={16}/> : <IconEye s={16}/>}
+    </button>
+  );
+
+  return (
+    <div className="page-bg" style={{ minHeight: '100vh', position: 'relative' }}>
+      <NeuralCanvas isDark={isDark} />
+
+      {/* ── Header ── */}
+      <header style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '20px 32px',
+        pointerEvents: 'none',
+      }}>
+        <div style={{ pointerEvents: 'auto' }}>
+          <Logo isDark={isDark} />
+        </div>
+        <button className="theme-btn" onClick={toggleTheme} aria-label="Toggle theme"
+                style={{ pointerEvents: 'auto' }}>
+          {isDark ? <IconSun s={15}/> : <IconMoon s={15}/>}
+        </button>
+      </header>
+
+      {/* ── Main ── */}
+      <main style={{
+        position: 'relative', zIndex: 10,
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '100px 24px 60px',
+      }}>
+        <div style={{ width: '100%', maxWidth: 420 }}>
+
+          {/* Heading */}
+          <div key={isLogin ? 'h-login' : 'h-signup'} className="heading-anim"
+               style={{ marginBottom: 40 }}>
+            <h1 style={{
+              fontSize: 'clamp(36px, 5vw, 50px)',
+              fontWeight: 800,
+              lineHeight: 1.05,
+              letterSpacing: '-0.025em',
+              color: txCol,
+              marginBottom: 14,
+            }}>
+              {isLogin ? (
+                <>Sign in to<br/><span className="grad-text">InterviewAI</span></>
+              ) : (
+                <>Create your<br/><span className="grad-text">account</span></>
+              )}
+            </h1>
+            <p style={{ fontSize: 14.5, color: mtCol, lineHeight: 1.6 }}>
+              {isLogin
+                ? 'Resume your AI-powered interview sessions.'
+                : 'Join thousands of candidates acing their interviews.'}
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} noValidate>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+              {/* Full name — signup only */}
+              <Field id="name" show={!isLogin}
+                     label="Full Name"
+                     value={name} onChange={e => setName(e.target.value)}
+                     autoComplete="name" placeholder="Full Name" />
+
+              {/* Email */}
+              <AlwaysField id="email" label="Email Address" type="email"
+                           value={email}
+                           onChange={e => { setEmail(e.target.value); touch('email'); }}
+                           onBlur={() => touch('email')}
+                           error={errs.email}
+                           autoComplete="email" placeholder="Email Address" />
+
+              {/* Password */}
+              <AlwaysField id="password" label="Password"
+                           type={showPw ? 'text' : 'password'}
+                           value={password}
+                           onChange={e => { setPassword(e.target.value); touch('pw'); }}
+                           onBlur={() => touch('pw')}
+                           error={errs.pw}
+                           autoComplete={isLogin ? 'current-password' : 'new-password'}
+                           placeholder="Create Password"
+                           rightSlot={eyeBtn(showPw, () => setShowPw(v => !v))} />
+
+              {/* Strength meter */}
+              {!isLogin && password.length > 0 && (
+                <div style={{ paddingLeft: 36, marginTop: -6 }}>
+                  <div style={{ display: 'flex', gap: 5, marginBottom: 6 }}>
+                    {[1,2,3,4].map(i => (
+                      <div key={i} className="pw-segment"
+                           style={{ background: i <= score ? PW_COLORS[score] : (isDark ? '#1A2640' : '#E2E8F0') }} />
+                    ))}
+                  </div>
+                  {score > 0 && (
+                    <span style={{ fontSize: 11.5, color: PW_COLORS[score], fontWeight: 600, fontFamily: 'JetBrains Mono, monospace' }}>
+                      {PW_LABELS[score]}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Confirm password — signup only */}
+              <Field id="confirm" show={!isLogin}
+                     label="Confirm Password"
+                     type={showPw2 ? 'text' : 'password'}
+                     value={confirm}
+                     onChange={e => { setConfirm(e.target.value); touch('confirm'); }}
+                     onBlur={() => touch('confirm')}
+                     error={errs.confirm}
+                     autoComplete="new-password" placeholder="Confirm Password"
+                     rightSlot={eyeBtn(showPw2, () => setShowPw2(v => !v))} />
+
+              {/* Remember / Forgot — login only */}
+              {isLogin && (
+                <div style={{ paddingLeft: 36, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: mtCol, cursor: 'pointer', userSelect: 'none' }}>
+                    <input type="checkbox" style={{ width: 15, height: 15, accentColor: '#7B95BC' }} />
+                    Keep me signed in
+                  </label>
+                  <a href="#" className="grad-text" style={{ fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}
+                     onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                     onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                    Forgot password?
+                  </a>
+                </div>
+              )}
+
+              {/* CTA */}
+              <div style={{ paddingLeft: 36, marginTop: 4 }}>
+                <button type="submit" className="btn-cta" disabled={loading || success}>
+                  {success   ? <><IconCheck s={18}/><span>{isLogin ? 'Signed in!' : 'Account created!'}</span></> :
+                   loading   ? <><span className="spinner"/><span>{STEPS[step]}</span></> :
+                               <><span>{isLogin ? 'Sign In' : 'Create Account'}</span><IconArrow s={17}/></>}
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {/* Divider */}
+          <div style={{ paddingLeft: 36, margin: '28px 0' }}>
+            <div className="divider">
+              <div className="divider-line"></div>
+              <span>or</span>
+              <div className="divider-line"></div>
+            </div>
+          </div>
+
+          {/* OAuth */}
+          <div style={{ paddingLeft: 36, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <button className="oauth-row" type="button">
+              <IconGoogle s={18} />
+              <span>Sign {isLogin ? 'in' : 'up'} with Google</span>
+            </button>
+            <button className="oauth-row" type="button">
+              <IconGithub s={18} />
+              <span>Sign {isLogin ? 'in' : 'up'} with GitHub</span>
+            </button>
+          </div>
+
+          {/* Switch mode */}
+          <div style={{ paddingLeft: 36, marginTop: 32, fontSize: 13.5, color: mtCol }}>
+            {isLogin ? 'New here? ' : 'Already have an account? '}
+            <button type="button"
+                    onClick={() => switchMode(!isLogin)}
+                    className="grad-text"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13.5, fontFamily: 'inherit', padding: 0 }}>
+              {isLogin ? 'Create an account' : 'Sign in'}
+            </button>
+          </div>
+
+          {/* Terms */}
+          <p style={{ paddingLeft: 36, marginTop: 24, fontSize: 11, color: sbCol, fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.7 }}>
+            By continuing you agree to our{' '}
+            <a href="#" style={{ textDecoration: 'underline', textDecorationColor: 'currentColor', color: 'inherit' }}>Terms</a>
+            {' '}and{' '}
+            <a href="#" style={{ textDecoration: 'underline', textDecorationColor: 'currentColor', color: 'inherit' }}>Privacy Policy</a>.
+          </p>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

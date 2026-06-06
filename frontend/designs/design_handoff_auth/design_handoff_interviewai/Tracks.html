@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>InterviewAI — Learning Tracks</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { darkMode: 'class' };
+  (function () {
+    try {
+      const t = localStorage.getItem('iai-theme');
+      if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      }
+    } catch (e) { document.documentElement.classList.add('dark'); }
+  })();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body, #root { height: 100%; }
+  body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+  /* ── Background ── */
+  .page-bg       {
+    background:
+      radial-gradient(ellipse 60% 50% at 85% 12%, rgba(160,180,220,0.18), transparent 60%),
+      radial-gradient(ellipse 55% 50% at 10% 90%, rgba(140,170,210,0.14), transparent 60%),
+      #F7F9FC;
+  }
+  .dark .page-bg {
+    background:
+      radial-gradient(ellipse 70% 55% at 88% 12%, rgba(130,90,200,0.16), transparent 60%),
+      radial-gradient(ellipse 60% 55% at 12% 92%, rgba(40,160,220,0.12), transparent 60%),
+      #060B14;
+  }
+
+  /* ── Theme toggle ── */
+  .theme-btn {
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1px solid rgba(203,213,228,0.6);
+    background: rgba(255,255,255,0.75); backdrop-filter: blur(8px);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: #475569; transition: background 0.15s, transform 0.15s; flex-shrink: 0;
+  }
+  .theme-btn:hover { transform: scale(1.08); background: rgba(255,255,255,0.92); }
+  .dark .theme-btn { border-color: rgba(80,120,170,0.35); background: rgba(14,22,42,0.72); color: #CBD5E1; }
+  .dark .theme-btn:hover { background: rgba(20,32,58,0.9); }
+
+  /* ── Track card ── */
+  .track-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(245,248,253,0.84));
+    border: 1.5px solid rgba(200,214,232,0.78);
+    border-radius: 18px; backdrop-filter: blur(14px); padding: 26px;
+    transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s;
+    display: flex; flex-direction: column; gap: 14px;
+    text-decoration: none; color: inherit; cursor: pointer;
+  }
+  .dark .track-card {
+    background: linear-gradient(135deg, rgba(18,28,48,0.82), rgba(20,42,68,0.74));
+    border-color: rgba(80,120,170,0.38);
+  }
+  .track-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 20px 44px -8px rgba(120,140,200,0.18);
+    border-color: rgba(140,160,220,0.45);
+  }
+  .dark .track-card:hover {
+    box-shadow: 0 20px 44px -8px rgba(120,140,220,0.28);
+    border-color: rgba(140,160,235,0.45);
+  }
+  .track-card.locked { opacity: 0.58; cursor: default; }
+  .track-card.locked:hover { transform: none; box-shadow: none; border-color: rgba(200,214,232,0.78); }
+  .dark .track-card.locked:hover { border-color: rgba(80,120,170,0.38); }
+
+  /* ── Tag chip ── */
+  .tag-chip {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 0.07em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 4px; white-space: nowrap;
+    background: rgba(140,160,200,0.16); color: #5B73A0;
+  }
+  .dark .tag-chip { background: rgba(125,200,235,0.12); color: #9BB8E0; }
+
+  /* ── CTA button — brushed platinum → slate metallic ── */
+  .btn-cta-sm {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 13px; font-weight: 700; font-family: inherit;
+    background: linear-gradient(180deg, #DCE6F2 0%, #B0C2DD 32%, #7B95BC 70%, #54719C 100%);
+    color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 9px; padding: 7px 14px;
+    cursor: pointer; transition: opacity 0.15s, transform 0.15s, box-shadow 0.18s; flex-shrink: 0;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.50), 0 4px 12px -2px rgba(80,110,160,0.30);
+    text-shadow: 0 1px 0 rgba(40,60,90,0.18);
+  }
+  .dark .btn-cta-sm {
+    background: linear-gradient(180deg, #C8D5EC 0%, #8FA6CB 32%, #5C7BA8 70%, #3E5887 100%);
+    border-color: rgba(180,200,235,0.30);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.40), 0 6px 16px -3px rgba(60,90,150,0.45);
+  }
+  .btn-cta-sm:hover { transform: translateX(2px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 10px 28px -6px rgba(80,110,160,0.50); }
+
+  /* ── Progress ── */
+  .progress-track { border-radius: 99px; background: rgba(200,214,232,0.85); overflow: hidden; }
+  .dark .progress-track { background: rgba(28,46,80,0.85); }
+  .progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(135deg, #5DC9DF, #8FA8E0, #A78BFA); }
+
+  /* ── User avatar ── */
+  .user-avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, #5DC9DF, #8FA8E0, #A78BFA);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #fff; cursor: pointer; flex-shrink: 0;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+
+  /* ── Locked badge ── */
+  .locked-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: 'JetBrains Mono', monospace; font-size: 9.5px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 3px 7px; border-radius: 4px; flex-shrink: 0;
+    background: rgba(140,160,200,0.14); color: #5B73A0;
+    border: 1px solid rgba(140,160,200,0.26);
+  }
+  .dark .locked-badge { background: rgba(125,200,235,0.10); border-color: rgba(125,200,235,0.22); color: #9BB8E0; }
+
+  /* ── Gradient text — icy cyan → silver → violet ── */
+  .grad-text {
+    background: linear-gradient(135deg, #5DC9DF 0%, #8FA8E0 55%, #A78BFA 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Entrance animation ── */
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .card-anim { animation: fade-in-up 0.38s ease both; }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-thumb { background: rgba(140,160,200,0.25); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ══════════════════════════════════════
+   SPARSE MESH CANVAS
+   Matches reference: scattered nodes,
+   long-range connections, distance-faded
+   edges, no triangle fills.
+══════════════════════════════════════ */
+function SparseMesh({ isDark }) {
+  const cvRef   = useRef(null);
+  const animRef = useRef(null);
+  const stRef   = useRef(null);
+
+  const init = useCallback(() => {
+    const cv = cvRef.current; if (!cv) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = cv.clientWidth, h = cv.clientHeight;
+    cv.width = w * dpr; cv.height = h * dpr;
+    cv.getContext('2d').scale(dpr, dpr);
+    stRef.current = {
+      w, h,
+      pts: Array.from({ length: 36 }, () => ({
+        x:  Math.random() * w,
+        y:  Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.18,
+        vy: (Math.random() - 0.5) * 0.18,
+        r:  1.3 + Math.random() * 1.5,
+        ph: Math.random() * Math.PI * 2,
+      })),
+    };
+  }, []);
+
+  useEffect(() => {
+    init();
+    const ro = new ResizeObserver(init);
+    if (cvRef.current) ro.observe(cvRef.current);
+
+    const tick = () => {
+      const st = stRef.current;
+      if (!st) { animRef.current = requestAnimationFrame(tick); return; }
+      const { pts, w, h } = st;
+      const cv = cvRef.current; if (!cv) return;
+      const ctx = cv.getContext('2d');
+      ctx.clearRect(0, 0, w, h);
+
+      const MAXD = Math.min(w, h) * 0.40;
+
+      pts.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.ph += 0.005;
+        if (p.x < 0 || p.x > w) p.vx *= -1;
+        if (p.y < 0 || p.y > h) p.vy *= -1;
+      });
+
+      /* Edges — quadratic distance fade, alternating cyan/violet in dark */
+      ctx.lineWidth = 0.75;
+      for (let i = 0; i < pts.length; i++) {
+        for (let j = i + 1; j < pts.length; j++) {
+          const dx = pts[i].x - pts[j].x;
+          const dy = pts[i].y - pts[j].y;
+          const d  = Math.sqrt(dx * dx + dy * dy);
+          if (d < MAXD) {
+            const t = d / MAXD;
+            const a = isDark
+              ? (0.36 * (1 - t * t)).toFixed(3)
+              : (0.18 * (1 - t * t)).toFixed(3);
+            const violet = (i + j) % 3 === 0;
+            ctx.beginPath();
+            ctx.moveTo(pts[i].x, pts[i].y);
+            ctx.lineTo(pts[j].x, pts[j].y);
+            ctx.strokeStyle = isDark
+              ? (violet ? `rgba(170,150,235,${a})` : `rgba(125,200,235,${a})`)
+              : `rgba(110,148,190,${a})`;
+            ctx.stroke();
+          }
+        }
+      }
+
+      /* Nodes */
+      pts.forEach((p, i) => {
+        const g  = (Math.sin(p.ph) + 1) * 0.5;
+        const rr = p.r * (0.85 + g * 0.32);
+        const violet = i % 4 === 0;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, rr, 0, Math.PI * 2);
+        ctx.fillStyle = isDark
+          ? (violet
+              ? `rgba(190,170,240,${(0.55 + g * 0.28).toFixed(3)})`
+              : `rgba(155,210,240,${(0.52 + g * 0.28).toFixed(3)})`)
+          : `rgba(110,148,190,${(0.30 + g * 0.14).toFixed(3)})`;
+        ctx.fill();
+      });
+
+      animRef.current = requestAnimationFrame(tick);
+    };
+
+    tick();
+    return () => { ro.disconnect(); cancelAnimationFrame(animRef.current); };
+  }, [isDark, init]);
+
+  return (
+    <canvas ref={cvRef} style={{
+      position: 'fixed', inset: 0, width: '100%', height: '100%',
+      pointerEvents: 'none', zIndex: 0,
+      opacity: isDark ? 0.9 : 0.65,
+    }} />
+  );
+}
+
+/* ══ ICONS ══ */
+const Svg = ({ s = 18, sw = 1.8, children, style }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={s} height={s} viewBox="0 0 24 24"
+       fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" style={style}>
+    {children}
+  </svg>
+);
+const IconSun       = p => <Svg {...p}><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></Svg>;
+const IconMoon      = p => <Svg {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></Svg>;
+const IconArrow     = p => <Svg {...p}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></Svg>;
+const IconLock      = p => <Svg {...p}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></Svg>;
+const IconServer    = p => <Svg {...p}><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></Svg>;
+const IconCode      = p => <Svg {...p}><polyline points="16,18 22,12 16,6"/><polyline points="8,6 2,12 8,18"/></Svg>;
+const IconUsers     = p => <Svg {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Svg>;
+const IconDatabase  = p => <Svg {...p}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></Svg>;
+const IconCpu       = p => <Svg {...p}><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></Svg>;
+const IconGitBranch = p => <Svg {...p}><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></Svg>;
+
+/* ══ LOGO ══ */
+const Logo = ({ isDark }) => (
+  <a href="Auth Nexus.html" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <defs>
+        <linearGradient id="lgT" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#5DC9DF"/>
+          <stop offset="55%" stopColor="#8FA8E0"/>
+          <stop offset="100%" stopColor="#A78BFA"/>
+        </linearGradient>
+      </defs>
+      <path d="M16 1L30 9V23L16 31L2 23V9Z" stroke="url(#lgT)" strokeWidth="1.2" fill="none"/>
+      <path d="M9 22L13.5 11L18 22M11 18.5H16" stroke="url(#lgT)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <line x1="21" y1="11" x2="21" y2="22" stroke="url(#lgT)" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+    <span style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em', color: isDark ? '#F1F5F9' : '#0F172A' }}>
+      InterviewAI
+    </span>
+  </a>
+);
+
+/* ══ DATA ══ */
+const TRACKS = [
+  { id: 'system-design', title: 'System Design',                     icon: 'server',    modules: 8,  hours: 4.5, progress: 45, tags: ['Architecture', 'Scalability', 'CAP'],     href: 'Track Detail.html' },
+  { id: 'dsa',           title: 'Data Structures & Algorithms',       icon: 'code',      modules: 12, hours: 6,   progress: 20, tags: ['Arrays', 'Graphs', 'DP'],                  href: 'Track Detail.html' },
+  { id: 'behavioral',    title: 'Behavioral Interviews',              icon: 'users',     modules: 6,  hours: 3,   progress: 0,  tags: ['STAR Method', 'Leadership'],               href: 'Track Detail.html' },
+  { id: 'frontend',      title: 'Frontend Engineering',               icon: 'gitbranch', modules: 10, hours: 5,   progress: 0,  tags: ['React', 'TypeScript', 'A11y'],             locked: true },
+  { id: 'backend',       title: 'Backend Engineering',                icon: 'database',  modules: 9,  hours: 5,   progress: 0,  tags: ['Node.js', 'PostgreSQL', 'Redis'],          locked: true },
+  { id: 'ml',            title: 'ML Engineering',                     icon: 'cpu',       modules: 7,  hours: 4,   progress: 0,  tags: ['PyTorch', 'MLOps', 'LLMs'],               locked: true },
+];
+
+const ICON_MAP = { server: IconServer, code: IconCode, users: IconUsers, database: IconDatabase, cpu: IconCpu, gitbranch: IconGitBranch };
+
+/* ══ TRACK CARD ══ */
+function TrackCard({ track, idx, isDark, delay }) {
+  const Icon  = ICON_MAP[track.icon];
+  const txCol = isDark ? '#F1F5F9' : '#0F172A';
+  const mtCol = isDark ? '#CBD5E1' : '#475569';
+  const sbCol = isDark ? '#94A3B8' : '#64748B';
+
+  /* Alternate icy-cyan and violet-silver icon tints */
+  const isCyan = idx % 2 === 0;
+  const iconClr = isCyan ? '#4FA8C2' : '#7B7BB8';
+  const iconBg  = isCyan
+    ? (isDark ? 'rgba(125,200,235,0.16)' : 'rgba(125,200,235,0.13)')
+    : (isDark ? 'rgba(170,150,235,0.16)' : 'rgba(170,150,235,0.13)');
+
+  return (
+    <a
+      href={track.locked ? undefined : track.href}
+      className={`track-card card-anim${track.locked ? ' locked' : ''}`}
+      style={{ animationDelay: `${delay}ms` }}
+      onClick={track.locked ? e => e.preventDefault() : undefined}
+    >
+      {/* Icon row */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div style={{ width: 42, height: 42, borderRadius: 11, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: iconBg, color: iconClr }}>
+          <Icon s={20} sw={1.65} />
+        </div>
+        {track.locked
+          ? <span className="locked-badge"><IconLock s={8} sw={2.5} /> Pro</span>
+          : track.progress > 0 && (
+              <span style={{ fontSize: 11.5, fontFamily: "'JetBrains Mono',monospace", color: sbCol, letterSpacing: '0.04em' }}>
+                {track.progress}%
+              </span>
+            )
+        }
+      </div>
+
+      {/* Title + desc */}
+      <div>
+        <h3 style={{ fontSize: 16.5, fontWeight: 700, color: txCol, marginBottom: 6, letterSpacing: '-0.015em', lineHeight: 1.2 }}>
+          {track.title}
+        </h3>
+        <p style={{ fontSize: 13.5, color: mtCol, lineHeight: 1.6, textWrap: 'pretty' }}>
+          {track.desc || ''}
+        </p>
+      </div>
+
+      {/* Tags */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+        {track.tags.map(tag => <span key={tag} className="tag-chip">{tag}</span>)}
+      </div>
+
+      {/* Progress */}
+      {!track.locked && (
+        <div className="progress-track" style={{ height: 3 }}>
+          <div className="progress-fill" style={{ width: `${track.progress}%` }} />
+        </div>
+      )}
+
+      {/* Footer */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', gap: 8 }}>
+        <span style={{ fontSize: 12, color: sbCol, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '0.03em' }}>
+          {track.modules} modules · {track.hours}h
+        </span>
+        {!track.locked
+          ? <span className="btn-cta-sm">{track.progress > 0 ? 'Continue' : 'Start'} <IconArrow s={13} sw={2.2} /></span>
+          : <span style={{ fontSize: 12, color: isDark ? '#9BB8E0' : '#5B73A0', fontWeight: 600 }}>Upgrade to unlock</span>
+        }
+      </div>
+    </a>
+  );
+}
+
+/* ══ APP ══ */
+function App() {
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+  const toggleTheme = useCallback(() => {
+    setIsDark(d => {
+      const next = !d;
+      document.documentElement.classList.toggle('dark', next);
+      try { localStorage.setItem('iai-theme', next ? 'dark' : 'light'); } catch {}
+      return next;
+    });
+  }, []);
+
+  const txCol = isDark ? '#F1F5F9' : '#0F172A';
+  const mtCol = isDark ? '#CBD5E1' : '#475569';
+  const sbCol = isDark ? '#94A3B8' : '#64748B';
+  const hdBg  = isDark ? 'rgba(6,11,20,0.78)' : 'rgba(247,249,252,0.82)';
+  const hdBdr = isDark ? 'rgba(80,120,170,0.30)' : 'rgba(200,214,232,0.55)';
+
+  return (
+    <div className="page-bg" style={{ minHeight: '100vh' }}>
+      <SparseMesh isDark={isDark} />
+
+      <header style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '18px 32px',
+        background: hdBg, backdropFilter: 'blur(16px)',
+        borderBottom: `1px solid ${hdBdr}`,
+      }}>
+        <Logo isDark={isDark} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="user-avatar" title="Profile">JD</div>
+          <button className="theme-btn" onClick={toggleTheme} aria-label="Toggle theme">
+            {isDark ? <IconSun s={15} /> : <IconMoon s={15} />}
+          </button>
+        </div>
+      </header>
+
+      <main style={{ position: 'relative', zIndex: 10, maxWidth: 1100, margin: '0 auto', padding: '106px 28px 80px' }}>
+
+        <div style={{ marginBottom: 44 }}>
+          <h1 style={{ fontSize: 'clamp(26px,3.5vw,40px)', fontWeight: 800, letterSpacing: '-0.025em', color: txCol, marginBottom: 10, lineHeight: 1.1 }}>
+            Learning <span className="grad-text">Tracks</span>
+          </h1>
+          <p style={{ fontSize: 15, color: mtCol, lineHeight: 1.6, marginBottom: 16 }}>
+            Structured preparation paths curated by domain experts.
+          </p>
+          <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap' }}>
+            {['6 tracks', '3 in progress', 'self-paced'].map(s => (
+              <span key={s} style={{ fontSize: 11, color: sbCol, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '0.09em', textTransform: 'uppercase' }}>{s}</span>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(308px,1fr))', gap: 18 }}>
+          {TRACKS.map((track, i) => (
+            <TrackCard key={track.id} track={track} idx={i} isDark={isDark} delay={i * 55} />
+          ))}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
