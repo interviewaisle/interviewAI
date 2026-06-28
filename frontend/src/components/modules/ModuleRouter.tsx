@@ -2,6 +2,7 @@ import type { Module, TrackProgress, User } from '@/types'
 import { ConceptModule } from './ConceptModule'
 import { CodingModule } from './CodingModule'
 import { SimulatorModule } from './SimulatorModule'
+import { InterviewModule } from './InterviewModule'
 
 interface ModuleRouterProps {
   module: Module
@@ -19,5 +20,7 @@ export function ModuleRouter({ module, allModules, progress, user }: ModuleRoute
       return <CodingModule {...shared} />
     case 'SIMULATOR':
       return <SimulatorModule {...shared} />
+    case 'INTERVIEW':
+      return <InterviewModule {...shared} />
   }
 }

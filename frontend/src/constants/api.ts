@@ -18,4 +18,6 @@ export const API_PATHS = {
   TRACK_PROGRESS: (trackId: string) => `/api/v1/tracks/${trackId}/progress`,
   SUBMISSIONS_RUN: '/api/v1/submissions/run',
   SIMULATOR_STREAM: '/api/v1/simulator/stream',
+  INTERVIEW_CHAT: '/api/v1/interview/chat',
+  INTERVIEW_EVALUATE: '/api/v1/interview/evaluate',
 } as const

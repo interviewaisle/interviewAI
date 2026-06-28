@@ -7,6 +7,7 @@ import { authRoutes } from './routes/auth'
 import { submissionsRoutes } from './routes/submissions'
 import { tracksRoutes } from './routes/tracks'
 import { simulatorRoutes } from './routes/simulator'
+import { interviewRoutes } from './routes/interview'
 import { startHydrationWorker } from './workers/hydration'
 
 const server = Fastify({ logger: true })
@@ -18,6 +19,7 @@ server.register(authRoutes, { prefix: '/api/v1/auth' })
 server.register(submissionsRoutes, { prefix: '/api/v1/submissions' })
 server.register(tracksRoutes, { prefix: '/api/v1/tracks' })
 server.register(simulatorRoutes, { prefix: '/api/v1/simulator' })
+server.register(interviewRoutes, { prefix: '/api/v1/interview' })
 
 server.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))
 

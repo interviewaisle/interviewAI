@@ -1,5 +1,5 @@
 import { getToken } from '@/lib/auth'
-import type { Track, Module, TrackProgress, User, SubmissionBody } from '@/types'
+import type { Track, Module, TrackProgress, User, SubmissionBody, ChatMessage, DualScore } from '@/types'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
@@ -49,6 +49,13 @@ export const api = {
   submissions: {
     run: (body: SubmissionBody) =>
       apiFetch<{ execution_id: string; status: string }>('/api/v1/submissions/run', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+  },
+  interview: {
+    evaluate: (body: { module_id: string; code: string; chat_logs: ChatMessage[] }) =>
+      apiFetch<DualScore>('/api/v1/interview/evaluate', {
         method: 'POST',
         body: JSON.stringify(body),
       }),
