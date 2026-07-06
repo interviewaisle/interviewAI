@@ -3,9 +3,11 @@ import { Readable } from 'node:stream'
 import { z } from 'zod'
 import { sql } from '../db/client'
 import { authenticate } from '../middleware/auth'
+import { config } from '../config'
 
-const OLLAMA_URL = 'http://localhost:11434'
-const MODEL = 'llama3.2:3b'
+const GROQ_API_URL = 'https://api.groq.com/openai/v1'
+const GROQ_MODEL = 'llama-3.3-70b-versatile'
+const OLLAMA_MODEL = 'llama3.2:3b'
 
 const DEBUGGER_SYSTEM = `You are an expert AI Debugging Assistant helping a software engineer debug code during a technical interview. You have deep expertise in Python, distributed systems, and RAG pipelines.
 
@@ -41,6 +43,8 @@ const evaluateBody = z.object({
   })).max(50),
 })
 
+type Message = { role: 'user' | 'assistant' | 'system'; content: string }
+
 async function logMessage(userId: string, moduleId: string, role: 'user' | 'assistant', content: string) {
   try {
     await sql`
@@ -48,12 +52,124 @@ async function logMessage(userId: string, moduleId: string, role: 'user' | 'assi
       VALUES (${userId}, ${moduleId}, ${role}, ${content})
     `
   } catch (err) {
-    // Non-fatal — logging failure should never break the chat
     console.error('Failed to log chat message:', err)
   }
 }
 
+// Stream tokens via Groq (OpenAI-compatible SSE) into a Readable
+async function streamGroq(messages: Message[], readable: Readable): Promise<string> {
+  let aiResponse = ''
+  const res = await fetch(`${GROQ_API_URL}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({ model: GROQ_MODEL, stream: true, messages }),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Groq error ${res.status}: ${err}`)
+  }
+
+  const reader = res.body!.getReader()
+  const decoder = new TextDecoder()
+
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    const lines = decoder.decode(value, { stream: true }).split('\n')
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue
+      const data = line.slice(6).trim()
+      if (data === '[DONE]') {
+        readable.push(`data: ${JSON.stringify({ type: 'done' })}\n\n`)
+        continue
+      }
+      try {
+        const chunk = JSON.parse(data) as { choices?: Array<{ delta?: { content?: string } }> }
+        const text = chunk.choices?.[0]?.delta?.content ?? ''
+        if (text) {
+          aiResponse += text
+          readable.push(`data: ${JSON.stringify({ type: 'token', text })}\n\n`)
+        }
+      } catch { /* skip malformed line */ }
+    }
+  }
+  return aiResponse
+}
+
+// Stream tokens via Ollama (NDJSON) into a Readable
+async function streamOllama(messages: Message[], readable: Readable): Promise<string> {
+  let aiResponse = ''
+  const res = await fetch(`${config.OLLAMA_URL}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: OLLAMA_MODEL, stream: true, messages }),
+  })
+
+  const reader = res.body!.getReader()
+  const decoder = new TextDecoder()
+
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    const lines = decoder.decode(value, { stream: true }).split('\n').filter(Boolean)
+    for (const line of lines) {
+      try {
+        const chunk = JSON.parse(line) as { message?: { content?: string }; done?: boolean }
+        const text = chunk.message?.content ?? ''
+        if (text) {
+          aiResponse += text
+          readable.push(`data: ${JSON.stringify({ type: 'token', text })}\n\n`)
+        }
+        if (chunk.done) readable.push(`data: ${JSON.stringify({ type: 'done' })}\n\n`)
+      } catch { /* skip malformed line */ }
+    }
+  }
+  return aiResponse
+}
+
+// Non-streaming evaluate — returns parsed JSON scores
+async function evaluateWithAI(payload: string): Promise<string> {
+  const messages: Message[] = [
+    { role: 'system', content: EVALUATOR_SYSTEM },
+    { role: 'user', content: payload },
+  ]
+
+  if (config.GROQ_API_KEY) {
+    const res = await fetch(`${GROQ_API_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        stream: false,
+        response_format: { type: 'json_object' },
+        messages,
+      }),
+    })
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    return data.choices?.[0]?.message?.content ?? ''
+  }
+
+  // Ollama
+  const res = await fetch(`${config.OLLAMA_URL}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: OLLAMA_MODEL, stream: false, format: 'json', messages }),
+  })
+  const data = await res.json() as { message?: { content?: string } }
+  return data.message?.content ?? ''
+}
+
 export async function interviewRoutes(app: FastifyInstance) {
+  const provider = config.GROQ_API_KEY ? 'groq' : 'ollama'
+  app.log.info(`Interview AI provider: ${provider}`)
+
   // SSE streaming chat — logs user prompt + AI response to DB
   app.post('/chat', { preHandler: [authenticate] }, async (req, reply) => {
     const parsed = chatBody.safeParse(req.body)
@@ -73,49 +189,19 @@ export async function interviewRoutes(app: FastifyInstance) {
     const readable = new Readable({ read() {} })
 
     void (async () => {
-      // Log the user's message immediately
       await logMessage(userId, module_id, 'user', lastUserMessage.content)
 
-      let aiResponse = ''
+      const systemMessages: Message[] = [{ role: 'system', content: DEBUGGER_SYSTEM }, ...messages]
+
       try {
-        const res = await fetch(`${OLLAMA_URL}/api/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: MODEL,
-            stream: true,
-            messages: [
-              { role: 'system', content: DEBUGGER_SYSTEM },
-              ...messages,
-            ],
-          }),
-        })
+        const aiResponse = config.GROQ_API_KEY
+          ? await streamGroq(systemMessages, readable)
+          : await streamOllama(systemMessages, readable)
 
-        const reader = res.body!.getReader()
-        const decoder = new TextDecoder()
-
-        while (true) {
-          const { value, done } = await reader.read()
-          if (done) break
-          const lines = decoder.decode(value, { stream: true }).split('\n').filter(Boolean)
-          for (const line of lines) {
-            try {
-              const chunk = JSON.parse(line) as { message?: { content?: string }; done?: boolean }
-              const text = chunk.message?.content ?? ''
-              if (text) {
-                aiResponse += text
-                readable.push(`data: ${JSON.stringify({ type: 'token', text })}\n\n`)
-              }
-              if (chunk.done) readable.push(`data: ${JSON.stringify({ type: 'done' })}\n\n`)
-            } catch { /* skip malformed line */ }
-          }
-        }
-
-        // Log the full AI response once streaming is complete
         if (aiResponse) await logMessage(userId, module_id, 'assistant', aiResponse)
       } catch (err) {
-        app.log.error(err, 'Ollama chat error')
-        readable.push(`data: ${JSON.stringify({ type: 'error', message: 'AI service unavailable — is Ollama running?' })}\n\n`)
+        app.log.error(err, `${provider} chat error`)
+        readable.push(`data: ${JSON.stringify({ type: 'error', message: 'AI service unavailable' })}\n\n`)
       }
       readable.push(null)
     })()
@@ -135,24 +221,8 @@ export async function interviewRoutes(app: FastifyInstance) {
     const chatSummary = chat_logs.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n')
     const evalPayload = `## Submitted Code\n\`\`\`\n${code}\n\`\`\`\n\n## Chat History (${chat_logs.length} messages)\n${chatSummary}`
 
-    const res = await fetch(`${OLLAMA_URL}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: MODEL,
-        stream: false,
-        format: 'json',
-        messages: [
-          { role: 'system', content: EVALUATOR_SYSTEM },
-          { role: 'user', content: evalPayload },
-        ],
-      }),
-    })
-
-    const data = await res.json() as { message?: { content?: string } }
-    const text = data.message?.content ?? ''
-
     try {
+      const text = await evaluateWithAI(evalPayload)
       const scores = JSON.parse(text) as {
         code_score: number
         prompt_score: number
@@ -161,7 +231,6 @@ export async function interviewRoutes(app: FastifyInstance) {
         overall_feedback: string
       }
 
-      // Persist scores — fire and forget, don't block the response
       sql`
         INSERT INTO interview_scores
           (user_id, module_id, code_score, prompt_score, code_feedback, prompt_feedback, overall_feedback)
@@ -176,7 +245,7 @@ export async function interviewRoutes(app: FastifyInstance) {
     }
   })
 
-  // Monitoring: get all chat logs for a module (all candidates)
+  // Monitoring: all chat logs for a module grouped by candidate
   app.get('/logs/:moduleId', { preHandler: [authenticate] }, async (req, reply) => {
     const { moduleId } = req.params as { moduleId: string }
 
@@ -188,7 +257,6 @@ export async function interviewRoutes(app: FastifyInstance) {
     `
 
     type LogRow = { user_id: string; role: string; content: string; created_at: string }
-    // Group by user_id
     const byUser: Record<string, LogRow[]> = {}
     for (const row of rows as unknown as LogRow[]) {
       if (!byUser[row.user_id]) byUser[row.user_id] = []
@@ -202,7 +270,7 @@ export async function interviewRoutes(app: FastifyInstance) {
     })
   })
 
-  // Monitoring: get scores for a module (all candidates)
+  // Monitoring: scores for a module
   app.get('/scores/:moduleId', { preHandler: [authenticate] }, async (req, reply) => {
     const { moduleId } = req.params as { moduleId: string }
 

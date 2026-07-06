@@ -50,6 +50,16 @@ export type ExecutionStatus = 'IDLE' | 'BUILDING' | 'RUNNING' | 'STREAMING' | 'E
 
 export type ExitStatus = 'PASS' | 'RUNTIME_ERROR' | 'TIME_LIMIT_EXCEEDED' | 'OUT_OF_MEMORY'
 
+export interface SubmissionResult {
+  execution_id: string
+  status: 'COMPLETED' | 'COMPILE_ERROR' | 'RUNTIME_ERROR' | 'TIMEOUT'
+  language: string
+  version: string
+  stdout: string
+  stderr: string
+  exit_code: number
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string

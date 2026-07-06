@@ -12,7 +12,14 @@ import { startHydrationWorker } from './workers/hydration'
 
 const server = Fastify({ logger: true })
 
-server.register(cors, { origin: config.CORS_ORIGIN, credentials: true })
+const allowedOrigins = config.CORS_ORIGIN.split(',').map((o) => o.trim())
+server.register(cors, {
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true)
+    cb(new Error('Not allowed by CORS'), false)
+  },
+  credentials: true,
+})
 server.register(websocket)
 
 server.register(authRoutes, { prefix: '/api/v1/auth' })
