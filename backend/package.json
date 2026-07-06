@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "tsx watch --env-file=.env src/index.ts",
     "build": "tsup src/index.ts --format cjs --dts --out-dir dist",
-    "start": "node --env-file=.env dist/index.js",
+    "start": "node dist/index.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -12,10 +12,14 @@
     "@fastify/websocket": "^10.0.1",
     "@supabase/supabase-js": "^2.45.0",
     "fastify": "^4.28.0",
+    "groq-sdk": "^1.2.1",
     "ioredis": "^5.4.1",
     "postgres": "^3.4.4",
     "stripe": "^16.0.0",
     "zod": "^3.23.8"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

@@ -40,14 +40,20 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
       const fitAddon = new FitAddon()
       term.loadAddon(fitAddon)
       term.open(container)
-      fitAddon.fit()
       termRef.current = term
 
-      const ro = new ResizeObserver(() => fitAddon.fit())
-      ro.observe(container)
+      let ro: ResizeObserver | null = null
+      requestAnimationFrame(() => {
+        if (!termRef.current) return
+        fitAddon.fit()
+        ro = new ResizeObserver(() => {
+          if (termRef.current) fitAddon.fit()
+        })
+        ro.observe(container)
+      })
 
       return () => {
-        ro.disconnect()
+        ro?.disconnect()
         term.dispose()
         termRef.current = null
       }

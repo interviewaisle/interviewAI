@@ -16,6 +16,7 @@ const tierLabel: Record<Module['tier_type'], string> = {
   CONCEPT: 'Lesson',
   CODING: 'Coding',
   SIMULATOR: 'Simulator',
+  INTERVIEW: 'Interview',
 }
 
 /* Badge colors per tier type — icy-cyan, silver-blue, violet palette */
@@ -25,6 +26,7 @@ const typeMeta: Record<Module['tier_type'], {
   CONCEPT:   { bgLight: 'rgba(125,200,235,0.14)', bgDark: 'rgba(125,200,235,0.18)', colorLight: '#3F8FAE', colorDark: '#7DCCEB' },
   CODING:    { bgLight: 'rgba(140,160,220,0.14)', bgDark: 'rgba(140,160,220,0.18)', colorLight: '#5B73A0', colorDark: '#9BB0E0' },
   SIMULATOR: { bgLight: 'rgba(170,150,235,0.14)', bgDark: 'rgba(170,150,235,0.18)', colorLight: '#7B6CB2', colorDark: '#BFA8F0' },
+  INTERVIEW: { bgLight: 'rgba(93,201,223,0.14)', bgDark: 'rgba(93,201,223,0.18)', colorLight: '#2E8DA0', colorDark: '#5DC9DF' },
 }
 
 function IconCheck() {

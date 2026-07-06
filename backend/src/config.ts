@@ -8,6 +8,9 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().default('redis://localhost:6379'),
   STRIPE_SECRET_KEY: z.string().optional(),
+  GROQ_API_KEY: z.string().optional(),
+  OLLAMA_URL: z.string().default('http://localhost:11434'),
+  JUDGE0_URL: z.string().default('https://ce.judge0.com'),
 })
 
 const parsed = envSchema.safeParse(process.env)

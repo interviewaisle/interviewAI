@@ -16,7 +16,7 @@ export interface Module {
   id: string
   track_id: string
   stage_index: number
-  tier_type: 'CONCEPT' | 'CODING' | 'SIMULATOR'
+  tier_type: 'CONCEPT' | 'CODING' | 'SIMULATOR' | 'INTERVIEW'
   company_tags: string[]
   content_payload: Record<string, unknown>
   created_at: string
@@ -49,6 +49,29 @@ export interface SubmissionBody {
 export type ExecutionStatus = 'IDLE' | 'BUILDING' | 'RUNNING' | 'STREAMING' | 'ERROR'
 
 export type ExitStatus = 'PASS' | 'RUNTIME_ERROR' | 'TIME_LIMIT_EXCEEDED' | 'OUT_OF_MEMORY'
+
+export interface SubmissionResult {
+  execution_id: string
+  status: 'COMPLETED' | 'COMPILE_ERROR' | 'RUNTIME_ERROR' | 'TIMEOUT'
+  language: string
+  version: string
+  stdout: string
+  stderr: string
+  exit_code: number
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface DualScore {
+  code_score: number
+  prompt_score: number
+  code_feedback: string
+  prompt_feedback: string
+  overall_feedback: string
+}
 
 export type WsFrame =
   | {

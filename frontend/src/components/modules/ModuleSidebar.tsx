@@ -13,6 +13,7 @@ const tierLabel: Record<Module['tier_type'], string> = {
   CONCEPT: 'Concept',
   CODING: 'Coding',
   SIMULATOR: 'Simulator',
+  INTERVIEW: 'Interview',
 }
 
 function SmallCheck() {
