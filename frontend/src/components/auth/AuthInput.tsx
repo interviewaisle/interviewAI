@@ -29,7 +29,7 @@ export function AuthInput({
         <input
           {...props}
           type={inputType}
-          className={`${styles.input} w-full h-[52px] rounded-xl px-4 ${showToggle ? 'pr-11' : ''} text-[14.5px] text-foreground placeholder:text-muted ${className}`}
+          className={`${styles.input} w-full h-[52px] rounded-lg px-4 ${showToggle ? 'pr-11' : ''} text-[14.5px] text-foreground placeholder:text-muted ${className}`}
         />
         {showToggle && (
           <button

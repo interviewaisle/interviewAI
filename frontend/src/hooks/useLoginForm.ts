@@ -39,7 +39,7 @@ export function useLoginForm() {
       setToken(data.access_token)
       setLoadingStep(-1)
       await delay(1600)
-      router.replace(ROUTES.TRACKS)
+      router.replace(ROUTES.HOME)
     } catch (err: unknown) {
       const cast = err as { data?: { message?: string }; message?: string }
       setError(cast.data?.message ?? cast.message ?? 'Login failed')

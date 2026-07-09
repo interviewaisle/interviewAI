@@ -94,7 +94,7 @@ function LoginContent() {
             </Link>
           </p>
 
-          <p className="font-mono-labels text-[10.5px] text-muted text-center mt-4 leading-relaxed">
+          <p className="text-[11.5px] text-muted text-center mt-4 leading-relaxed">
             By signing in you agree to our Terms of Service and Privacy Policy.
           </p>
         </div>

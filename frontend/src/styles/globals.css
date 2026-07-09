@@ -46,14 +46,14 @@ body {
 .glass-card {
   background: var(--card-bg);
   border: 1px solid var(--card-border-color);
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 /* ── Track card ── */
 .track-card {
   background: var(--card-bg);
   border: 1px solid var(--card-border-color);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 22px;
   display: flex;
   flex-direction: column;
@@ -80,7 +80,7 @@ body {
 .module-card {
   background: var(--module-card-bg);
   border: 1px solid var(--card-border-color);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 18px 20px;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -107,7 +107,7 @@ body {
   letter-spacing: 0.07em;
   text-transform: uppercase;
   padding: 3px 8px;
-  border-radius: 4px;
+  border-radius: 6px;
   white-space: nowrap;
   background: var(--surface-overlay);
   color: var(--muted);
@@ -124,7 +124,7 @@ body {
   background: var(--cta-btn-bg);
   color: #fff;
   border: none;
-  border-radius: 7px;
+  border-radius: 8px;
   padding: 7px 14px;
   cursor: pointer;
   transition: background 0.15s, box-shadow 0.15s;
@@ -238,7 +238,7 @@ body {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   padding: 3px 7px;
-  border-radius: 4px;
+  border-radius: 6px;
   flex-shrink: 0;
   background: var(--surface-overlay);
   color: var(--muted);

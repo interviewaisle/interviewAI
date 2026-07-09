@@ -116,12 +116,26 @@ function CircleIndicator({
   )
 }
 
+// Strip markdown syntax to plain text for compact card previews.
+function stripMarkdown(md: string): string {
+  return md
+    .replace(/```[\s\S]*?```/g, ' ')       // fenced code blocks
+    .replace(/`([^`]+)`/g, '$1')            // inline code
+    .replace(/^#{1,6}\s+/gm, '')            // headings
+    .replace(/\*\*([^*]+)\*\*/g, '$1')      // bold
+    .replace(/\*([^*]+)\*/g, '$1')          // italic
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links
+    .replace(/^[-*+]\s+/gm, '')             // list bullets
+    .replace(/\s+/g, ' ')                   // collapse whitespace
+    .trim()
+}
+
 function ModuleCard({
   module, isCompleted, isCurrent, isLocked,
 }: Omit<ModuleStepItemProps, 'isLast'>) {
   const payload = module.content_payload as { title?: string; description?: string }
   const title = payload.title ?? `${tierLabel[module.tier_type]} · Stage ${module.stage_index + 1}`
-  const description = payload.description ?? ''
+  const description = payload.description ? stripMarkdown(payload.description) : ''
 
   return (
     <div className={`module-card${isCurrent ? ' is-current' : ''}`}>
@@ -180,7 +194,7 @@ function ModuleCard({
       {/* Description */}
       {description && (
         <p
-          className="text-secondary text-pretty"
+          className="text-secondary text-pretty line-clamp-2"
           style={{ fontSize: 13.5, lineHeight: 1.6 }}
         >
           {description}

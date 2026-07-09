@@ -86,11 +86,6 @@ export function TrackCard({ track, index }: TrackCardProps) {
   const iconKey = matchIcon(track.name)
   const Icon = ICON_MAP[iconKey]
 
-  /* Alternate icy-cyan and violet-silver icon tile per design spec */
-  const isCyan = index % 2 === 0
-  const iconColor = isCyan ? '#4FA8C2' : '#7B7BB8'
-  const iconBg = isCyan ? 'rgba(125,200,235,0.13)' : 'rgba(170,150,235,0.13)'
-
   return (
     <Link
       href={ROUTES.TRACK_DETAIL(track.id)}
@@ -100,8 +95,8 @@ export function TrackCard({ track, index }: TrackCardProps) {
       {/* Icon row */}
       <div className="flex items-start justify-between">
         <div
-          className="flex items-center justify-center rounded-[11px] shrink-0"
-          style={{ width: 42, height: 42, background: iconBg, color: iconColor }}
+          className="flex items-center justify-center rounded-lg shrink-0 bg-surface-overlay text-primary"
+          style={{ width: 42, height: 42 }}
         >
           <Icon />
         </div>
