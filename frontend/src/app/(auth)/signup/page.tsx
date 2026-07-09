@@ -41,7 +41,7 @@ function SignupContent() {
             Join thousands of candidates acing their interviews.
           </p>
 
-          <form onSubmit={onSubmit} className="flex flex-col gap-3.5 pl-9" noValidate>
+          <form onSubmit={onSubmit} className="flex flex-col gap-3.5" noValidate>
             <AuthInput
               label="Full Name"
               type="text"
