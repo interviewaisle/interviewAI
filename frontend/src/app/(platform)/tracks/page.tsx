@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { api } from '@/lib/api'
-import { ErrorBoundary, TrackCard, GradientText } from '@/components/ui'
+import { ErrorBoundary, TrackCard } from '@/components/ui'
 import { PlatformHeader } from '@/components/layout'
 import type { Track, User } from '@/types'
 
@@ -76,11 +76,13 @@ function TracksGrid() {
 
 function TracksPageContent() {
   const [userInitial, setUserInitial] = useState('?')
+  const [userEmail, setUserEmail] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     api.auth.me()
       .then(user => {
         setUserInitial(user.email.charAt(0).toUpperCase())
+        setUserEmail(user.email)
       })
       .catch(() => {})
   }, [])
@@ -88,14 +90,14 @@ function TracksPageContent() {
   return (
     <div className="page-bg min-h-screen">
       <SparseMesh />
-      <PlatformHeader userInitial={userInitial} />
+      <PlatformHeader userInitial={userInitial} userEmail={userEmail} activeNav="tracks" />
 
       <main
         className="relative z-10 mx-auto"
         style={{ maxWidth: 1100, padding: '106px 28px 80px' }}
       >
         {/* Page heading */}
-        <div style={{ marginBottom: 44 }}>
+        <div style={{ marginBottom: 40 }}>
           <h1
             className="text-foreground"
             style={{
@@ -106,25 +108,11 @@ function TracksPageContent() {
               marginBottom: 10,
             }}
           >
-            Learning <GradientText>Tracks</GradientText>
+            Learning Tracks
           </h1>
-          <p
-            className="text-secondary"
-            style={{ fontSize: 15, lineHeight: 1.6, marginBottom: 16 }}
-          >
+          <p className="text-secondary" style={{ fontSize: 15, lineHeight: 1.6 }}>
             Structured preparation paths curated by domain experts.
           </p>
-          <div className="flex gap-[22px] flex-wrap">
-            {['Tracks', 'Self-paced'].map(label => (
-              <span
-                key={label}
-                className="font-mono-labels text-muted uppercase"
-                style={{ fontSize: 11, letterSpacing: '0.09em' }}
-              >
-                {label}
-              </span>
-            ))}
-          </div>
         </div>
 
         <TracksGrid />

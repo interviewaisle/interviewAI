@@ -26,12 +26,10 @@ export function AuthInput({
         {label}
       </label>
       <div className="relative">
-        {/* Node connector dot — vertically centered on input, hangs left outside form */}
-        <span className="absolute -left-5 top-1/2 -translate-y-1/2 w-[7px] h-[7px] rounded-full bg-node-dot" />
         <input
           {...props}
           type={inputType}
-          className={`${styles.input} w-full h-[52px] rounded-xl px-4 ${showToggle ? 'pr-11' : ''} text-[14.5px] text-foreground placeholder:text-muted ${className}`}
+          className={`${styles.input} w-full h-[52px] rounded-lg px-4 ${showToggle ? 'pr-11' : ''} text-[14.5px] text-foreground placeholder:text-muted ${className}`}
         />
         {showToggle && (
           <button

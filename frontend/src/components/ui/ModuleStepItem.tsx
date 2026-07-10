@@ -19,15 +19,6 @@ const tierLabel: Record<Module['tier_type'], string> = {
   INTERVIEW: 'Interview',
 }
 
-/* Badge colors per tier type — icy-cyan, silver-blue, violet palette */
-const typeMeta: Record<Module['tier_type'], {
-  bgLight: string; bgDark: string; colorLight: string; colorDark: string
-}> = {
-  CONCEPT:   { bgLight: 'rgba(125,200,235,0.14)', bgDark: 'rgba(125,200,235,0.18)', colorLight: '#3F8FAE', colorDark: '#7DCCEB' },
-  CODING:    { bgLight: 'rgba(140,160,220,0.14)', bgDark: 'rgba(140,160,220,0.18)', colorLight: '#5B73A0', colorDark: '#9BB0E0' },
-  SIMULATOR: { bgLight: 'rgba(170,150,235,0.14)', bgDark: 'rgba(170,150,235,0.18)', colorLight: '#7B6CB2', colorDark: '#BFA8F0' },
-  INTERVIEW: { bgLight: 'rgba(93,201,223,0.14)', bgDark: 'rgba(93,201,223,0.18)', colorLight: '#2E8DA0', colorDark: '#5DC9DF' },
-}
 
 function IconCheck() {
   return (
@@ -75,8 +66,7 @@ function CircleIndicator({
         className="flex items-center justify-center rounded-full shrink-0"
         style={{
           width: 28, height: 28,
-          background: 'linear-gradient(135deg, #5DC9DF, #8FA8E0, #A78BFA)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4)',
+          background: 'var(--primary)',
         }}
       >
         <IconCheck />
@@ -90,11 +80,10 @@ function CircleIndicator({
         style={{
           width: 28, height: 28,
           background: 'var(--surface-raised)',
-          border: '2px solid #8FA8E0',
-          boxShadow: '0 0 0 4px rgba(140,160,220,0.18)',
+          border: '1.5px solid var(--border)',
         }}
       >
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#8FA8E0' }} />
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)' }} />
       </div>
     )
   }
@@ -119,12 +108,26 @@ function CircleIndicator({
       style={{
         width: 28, height: 28,
         background: 'var(--surface-raised)',
-        border: '1.5px solid rgba(200,214,232,0.9)',
+        border: '1.5px solid var(--border)',
       }}
     >
-      <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#CBD5E1' }} />
+      <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--muted)' }} />
     </div>
   )
+}
+
+// Strip markdown syntax to plain text for compact card previews.
+function stripMarkdown(md: string): string {
+  return md
+    .replace(/```[\s\S]*?```/g, ' ')       // fenced code blocks
+    .replace(/`([^`]+)`/g, '$1')            // inline code
+    .replace(/^#{1,6}\s+/gm, '')            // headings
+    .replace(/\*\*([^*]+)\*\*/g, '$1')      // bold
+    .replace(/\*([^*]+)\*/g, '$1')          // italic
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links
+    .replace(/^[-*+]\s+/gm, '')             // list bullets
+    .replace(/\s+/g, ' ')                   // collapse whitespace
+    .trim()
 }
 
 function ModuleCard({
@@ -132,14 +135,7 @@ function ModuleCard({
 }: Omit<ModuleStepItemProps, 'isLast'>) {
   const payload = module.content_payload as { title?: string; description?: string }
   const title = payload.title ?? `${tierLabel[module.tier_type]} · Stage ${module.stage_index + 1}`
-  const description = payload.description ?? ''
-  const meta = typeMeta[module.tier_type]
-
-  /* Type badge colors derived from CSS variables via class — pass as inline for dark mode compat */
-  const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
-  const typeBg = isDark ? meta.bgDark : meta.bgLight
-  const typeColor = isDark ? meta.colorDark : meta.colorLight
-  const completedColor = isDark ? '#7DCCEB' : '#3F8FAE'
+  const description = payload.description ? stripMarkdown(payload.description) : ''
 
   return (
     <div className={`module-card${isCurrent ? ' is-current' : ''}`}>
@@ -158,8 +154,8 @@ function ModuleCard({
                 letterSpacing: '0.08em',
                 padding: '2px 7px',
                 borderRadius: 4,
-                background: typeBg,
-                color: typeColor,
+                background: 'var(--surface-overlay)',
+                color: 'var(--muted)',
               }}
             >
               {tierLabel[module.tier_type]}
@@ -188,7 +184,7 @@ function ModuleCard({
         {isCompleted && (
           <div
             className="flex items-center gap-[5px] shrink-0 font-mono-labels uppercase"
-            style={{ fontSize: 11.5, color: completedColor, letterSpacing: '0.05em', marginTop: 2 }}
+            style={{ fontSize: 11.5, color: 'var(--muted)', letterSpacing: '0.05em', marginTop: 2 }}
           >
             <IconCheckCyan /> Completed
           </div>
@@ -198,7 +194,7 @@ function ModuleCard({
       {/* Description */}
       {description && (
         <p
-          className="text-secondary text-pretty"
+          className="text-secondary text-pretty line-clamp-2"
           style={{ fontSize: 13.5, lineHeight: 1.6 }}
         >
           {description}

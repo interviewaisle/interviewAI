@@ -6,7 +6,7 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { api } from '@/lib/api'
 import { clearToken } from '@/lib/auth'
-import { ErrorBoundary, GradientText, ModuleStepItem } from '@/components/ui'
+import { ErrorBoundary, ModuleStepItem } from '@/components/ui'
 import { PlatformHeader } from '@/components/layout'
 import { ROUTES } from '@/constants'
 import type { Module, Track, TrackProgress, User } from '@/types'
@@ -104,7 +104,6 @@ function TrackDetailContent() {
 
   const trackName = track?.name ?? 'Track'
   const trackDesc = track?.description ?? ''
-  const eyebrowColor = 'var(--accent)' // icy-cyan
 
   return (
     <div>
@@ -127,15 +126,6 @@ function TrackDetailContent() {
           style={{ marginBottom: 20 }}
         >
           <div className="flex-1 min-w-0">
-            {/* Eyebrow label */}
-            <div style={{ marginBottom: 8 }}>
-              <span
-                className="font-mono-labels uppercase"
-                style={{ fontSize: 10.5, letterSpacing: '0.1em', color: eyebrowColor }}
-              >
-                {trackName}
-              </span>
-            </div>
             {/* Heading */}
             <h1
               className="text-foreground"
@@ -147,7 +137,7 @@ function TrackDetailContent() {
                 marginBottom: 10,
               }}
             >
-              Track <GradientText>Overview</GradientText>
+              {trackName}
             </h1>
             {trackDesc && (
               <p
@@ -160,12 +150,8 @@ function TrackDetailContent() {
           </div>
           {/* Track icon */}
           <div
-            className="flex items-center justify-center rounded-[13px] shrink-0 text-accent"
-            style={{
-              width: 50,
-              height: 50,
-              background: 'rgba(125,200,235,0.13)',
-            }}
+            className="flex items-center justify-center rounded-lg shrink-0 bg-surface-overlay text-primary"
+            style={{ width: 50, height: 50 }}
           >
             <IconServer />
           </div>
@@ -174,16 +160,10 @@ function TrackDetailContent() {
         {/* Progress bar */}
         <div>
           <div className="flex justify-between items-center" style={{ marginBottom: 10 }}>
-            <span
-              className="font-mono-labels text-muted uppercase"
-              style={{ fontSize: 11, letterSpacing: '0.09em' }}
-            >
-              Track Progress
+            <span className="text-muted" style={{ fontSize: 13 }}>
+              Track progress
             </span>
-            <span
-              className="font-mono-labels text-muted"
-              style={{ fontSize: 11.5 }}
-            >
+            <span className="text-muted" style={{ fontSize: 13 }}>
               {completedCount} / {totalCount} modules
             </span>
           </div>
@@ -193,30 +173,15 @@ function TrackDetailContent() {
         </div>
 
         {/* Stats row */}
-        <div className="flex gap-6 flex-wrap" style={{ marginTop: 16 }}>
-          {[
-            `${pct}% complete`,
-            `${remaining} remaining`,
-          ].map(s => (
-            <span
-              key={s}
-              className="font-mono-labels text-muted uppercase"
-              style={{ fontSize: 11, letterSpacing: '0.07em' }}
-            >
-              {s}
-            </span>
-          ))}
+        <div className="flex gap-5 flex-wrap text-muted" style={{ marginTop: 14, fontSize: 13 }}>
+          <span>{pct}% complete</span>
+          <span>{remaining} remaining</span>
         </div>
       </div>
 
       {/* Modules label */}
       <div style={{ marginBottom: 18 }}>
-        <span
-          className="font-mono-labels text-muted uppercase"
-          style={{ fontSize: 11, letterSpacing: '0.1em' }}
-        >
-          Modules
-        </span>
+        <h2 className="text-[15px] font-semibold text-foreground">Modules</h2>
       </div>
 
       {/* Module timeline */}

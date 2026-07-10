@@ -41,7 +41,7 @@ function SignupContent() {
             Join thousands of candidates acing their interviews.
           </p>
 
-          <form onSubmit={onSubmit} className="flex flex-col gap-3.5 pl-9" noValidate>
+          <form onSubmit={onSubmit} className="flex flex-col gap-3.5" noValidate>
             <AuthInput
               label="Full Name"
               type="text"
@@ -109,7 +109,7 @@ function SignupContent() {
             </Link>
           </p>
 
-          <p className="font-mono-labels text-[10.5px] text-muted text-center mt-4 leading-relaxed">
+          <p className="text-[11.5px] text-muted text-center mt-4 leading-relaxed">
             By creating an account you agree to our Terms of Service and Privacy Policy.
           </p>
         </div>
