@@ -22,7 +22,7 @@ CREATE TABLE modules (
     track_id UUID NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
     stage_index INT NOT NULL,
     tier_type VARCHAR(50) NOT NULL
-        CHECK (tier_type IN ('CONCEPT', 'CODING', 'SIMULATOR')),
+        CHECK (tier_type IN ('CONCEPT', 'CODING', 'SIMULATOR', 'INTERVIEW')),
     company_tags TEXT[],
     content_payload JSONB NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
