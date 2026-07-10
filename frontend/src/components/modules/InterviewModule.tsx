@@ -68,6 +68,8 @@ export function InterviewModule({ module }: InterviewModuleProps) {
         chat_logs: messages,
       })
       setScores(result)
+      // Scoring the interview counts as completing the module.
+      api.tracks.complete(module.track_id, module.id).catch(() => {})
     } catch {
       // silent — user can retry
     } finally {

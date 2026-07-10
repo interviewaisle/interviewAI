@@ -47,4 +47,20 @@ export async function tracksRoutes(app: FastifyInstance) {
 
     return reply.send(modules)
   })
+
+  // Persist a module completion (idempotent).
+  app.post('/:trackId/modules/:moduleId/complete', { preHandler: authenticate }, async (req, reply) => {
+    const { moduleId } = req.params as { trackId: string; moduleId: string }
+    try {
+      await sql`
+        INSERT INTO user_progress (user_id, module_id)
+        VALUES (${req.user.id}, ${moduleId})
+        ON CONFLICT (user_id, module_id) DO NOTHING
+      `
+      return reply.send({ ok: true, module_id: moduleId })
+    } catch (err) {
+      app.log.error(err, 'Failed to record completion')
+      return reply.status(500).send({ error: 'COMPLETION_FAILED' })
+    }
+  })
 }

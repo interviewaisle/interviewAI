@@ -26,7 +26,9 @@ function CompleteIcon() {
 
 export function ConceptModule({ module, allModules, progress, user }: ConceptModuleProps) {
   const { isCompleted, markComplete } = useModuleCompletion(
-    progress.completed_modules.includes(module.id)
+    progress.completed_modules.includes(module.id),
+    module.track_id,
+    module.id
   )
 
   const effectiveCompleted =

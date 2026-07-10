@@ -76,6 +76,21 @@ export interface DualScore {
   turn_count?: number
 }
 
+export interface ProfileStats {
+  xp: number
+  level: number
+  xp_into_level: number
+  xp_for_next_level: number
+  streak_days: number
+  modules_completed: number
+  interviews_taken: number
+  best_code_score: number | null
+  best_prompt_score: number | null
+  tracks: { track_id: string; name: string; completed: number; total: number; pct: number }[]
+  badges: { id: string; label: string; description: string; earned: boolean }[]
+  activity: { type: 'module' | 'interview'; label: string; at: string }[]
+}
+
 export type WsFrame =
   | {
       type: 'STATE_SYNC'

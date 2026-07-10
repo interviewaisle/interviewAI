@@ -56,7 +56,7 @@ export function useExecution(termRef: RefObject<TerminalHandle | null>) {
     moduleId: string,
     stageIndex: number,
     trackId: string
-  ): Promise<void> {
+  ): Promise<SubmissionResult | undefined> {
     setStatus('BUILDING')
     termRef.current?.clear()
     termRef.current?.write(`${DIM}Preparing sandbox…${RESET}\r\n`)
@@ -73,6 +73,7 @@ export function useExecution(termRef: RefObject<TerminalHandle | null>) {
       termRef.current?.clear()
       if (termRef.current) renderOutput(termRef.current, result, files[0].name)
       setStatus(result.exit_code === 0 ? 'IDLE' : 'ERROR')
+      return result
     } catch (err) {
       const e = err as { status?: number; data?: { message?: string } }
       if (e.status === 402) {

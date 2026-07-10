@@ -16,6 +16,8 @@ export const API_PATHS = {
   TRACKS: '/api/v1/tracks',
   TRACK_MODULES: (trackId: string) => `/api/v1/tracks/${trackId}/modules`,
   TRACK_PROGRESS: (trackId: string) => `/api/v1/tracks/${trackId}/progress`,
+  MODULE_COMPLETE: (trackId: string, moduleId: string) => `/api/v1/tracks/${trackId}/modules/${moduleId}/complete`,
+  PROFILE_STATS: '/api/v1/profile/stats',
   SUBMISSIONS_RUN: '/api/v1/submissions/run',
   SIMULATOR_STREAM: '/api/v1/simulator/stream',
   INTERVIEW_CHAT: '/api/v1/interview/chat',

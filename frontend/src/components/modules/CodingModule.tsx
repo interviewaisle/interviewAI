@@ -8,6 +8,7 @@ import { MonacoEditor } from '@/components/editor/MonacoEditor'
 import { CodingFileTabBar } from './CodingFileTabBar'
 import { PaywallModal } from '@/components/ui/PaywallModal'
 import { Button } from '@/components/ui/Button'
+import { api } from '@/lib/api'
 import { useWorkspace } from '@/store/workspace'
 import { useExecution } from '@/hooks/useExecution'
 import { useAutosave, loadDraft, clearDraft } from '@/hooks/useAutosave'
@@ -87,7 +88,11 @@ export function CodingModule({ module }: CodingModuleProps) {
       content: files[f.name]?.content ?? f.content,
     }))
     try {
-      await run(currentFiles, module.id, module.stage_index, module.track_id)
+      const result = await run(currentFiles, module.id, module.stage_index, module.track_id)
+      // A clean run counts as completing the coding module.
+      if (result?.exit_code === 0) {
+        api.tracks.complete(module.track_id, module.id).catch(() => {})
+      }
     } catch (err) {
       const e = err as { status?: number; data?: { message?: string } }
       if (e.status === 402) {
