@@ -71,6 +71,9 @@ export interface DualScore {
   code_feedback: string
   prompt_feedback: string
   overall_feedback: string
+  /** AI-usage stats — present when the backend has token data for the session */
+  total_tokens?: number
+  turn_count?: number
 }
 
 export type WsFrame =

@@ -21,7 +21,7 @@ RULES:
 const EVALUATOR_SYSTEM = `You are an expert technical interview evaluator assessing two dimensions:
 
 1. CODE QUALITY (0-100): How correct, clean, and efficient is the final submitted code?
-2. PROMPT ENGINEERING (0-100): How well did the engineer use the AI assistant? Specific, targeted questions like "Why does retrieve_context return None when the list is non-empty?" score higher than generic "fix my code".
+2. PROMPT ENGINEERING (0-100): How well did the engineer use the AI assistant? Specific, targeted questions like "Why does retrieve_context return None when the list is non-empty?" score higher than generic "fix my code". Also factor AI-USAGE EFFICIENCY: reaching the fix in few, tight exchanges with low token spend is strong; many vague, token-heavy exchanges is weak. The AI-usage stats are provided in the payload — weigh them into prompt_score and reference them in prompt_feedback.
 
 Respond ONLY with valid JSON matching this exact schema — no markdown, no preamble:
 {"code_score":number,"prompt_score":number,"code_feedback":"string","prompt_feedback":"string","overall_feedback":"string"}`
@@ -44,28 +44,40 @@ const evaluateBody = z.object({
 })
 
 type Message = { role: 'user' | 'assistant' | 'system'; content: string }
+type TokenUsage = { prompt_tokens: number; completion_tokens: number }
+type StreamResult = { text: string; usage: TokenUsage }
 
-async function logMessage(userId: string, moduleId: string, role: 'user' | 'assistant', content: string) {
+const NO_USAGE: TokenUsage = { prompt_tokens: 0, completion_tokens: 0 }
+
+async function logMessage(
+  userId: string,
+  moduleId: string,
+  role: 'user' | 'assistant',
+  content: string,
+  usage: TokenUsage = NO_USAGE,
+) {
   try {
     await sql`
-      INSERT INTO ai_chat_logs (user_id, module_id, role, content)
-      VALUES (${userId}, ${moduleId}, ${role}, ${content})
+      INSERT INTO ai_chat_logs (user_id, module_id, role, content, prompt_tokens, completion_tokens)
+      VALUES (${userId}, ${moduleId}, ${role}, ${content}, ${usage.prompt_tokens}, ${usage.completion_tokens})
     `
   } catch (err) {
     console.error('Failed to log chat message:', err)
   }
 }
 
-// Stream tokens via Groq (OpenAI-compatible SSE) into a Readable
-async function streamGroq(messages: Message[], readable: Readable): Promise<string> {
+// Stream tokens via Groq (OpenAI-compatible SSE) into a Readable, capturing usage.
+async function streamGroq(messages: Message[], readable: Readable): Promise<StreamResult> {
   let aiResponse = ''
+  let usage: TokenUsage = { ...NO_USAGE }
   const res = await fetch(`${GROQ_API_URL}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${config.GROQ_API_KEY}`,
     },
-    body: JSON.stringify({ model: GROQ_MODEL, stream: true, messages }),
+    // include_usage makes Groq emit a final chunk carrying token counts.
+    body: JSON.stringify({ model: GROQ_MODEL, stream: true, stream_options: { include_usage: true }, messages }),
   })
 
   if (!res.ok) {
@@ -88,21 +100,31 @@ async function streamGroq(messages: Message[], readable: Readable): Promise<stri
         continue
       }
       try {
-        const chunk = JSON.parse(data) as { choices?: Array<{ delta?: { content?: string } }> }
+        const chunk = JSON.parse(data) as {
+          choices?: Array<{ delta?: { content?: string } }>
+          usage?: { prompt_tokens?: number; completion_tokens?: number }
+        }
         const text = chunk.choices?.[0]?.delta?.content ?? ''
         if (text) {
           aiResponse += text
           readable.push(`data: ${JSON.stringify({ type: 'token', text })}\n\n`)
         }
+        if (chunk.usage) {
+          usage = {
+            prompt_tokens: chunk.usage.prompt_tokens ?? 0,
+            completion_tokens: chunk.usage.completion_tokens ?? 0,
+          }
+        }
       } catch { /* skip malformed line */ }
     }
   }
-  return aiResponse
+  return { text: aiResponse, usage }
 }
 
-// Stream tokens via Ollama (NDJSON) into a Readable
-async function streamOllama(messages: Message[], readable: Readable): Promise<string> {
+// Stream tokens via Ollama (NDJSON) into a Readable, capturing usage.
+async function streamOllama(messages: Message[], readable: Readable): Promise<StreamResult> {
   let aiResponse = ''
+  let usage: TokenUsage = { ...NO_USAGE }
   const res = await fetch(`${config.OLLAMA_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -118,17 +140,28 @@ async function streamOllama(messages: Message[], readable: Readable): Promise<st
     const lines = decoder.decode(value, { stream: true }).split('\n').filter(Boolean)
     for (const line of lines) {
       try {
-        const chunk = JSON.parse(line) as { message?: { content?: string }; done?: boolean }
+        const chunk = JSON.parse(line) as {
+          message?: { content?: string }
+          done?: boolean
+          prompt_eval_count?: number
+          eval_count?: number
+        }
         const text = chunk.message?.content ?? ''
         if (text) {
           aiResponse += text
           readable.push(`data: ${JSON.stringify({ type: 'token', text })}\n\n`)
         }
-        if (chunk.done) readable.push(`data: ${JSON.stringify({ type: 'done' })}\n\n`)
+        if (chunk.done) {
+          usage = {
+            prompt_tokens: chunk.prompt_eval_count ?? 0,
+            completion_tokens: chunk.eval_count ?? 0,
+          }
+          readable.push(`data: ${JSON.stringify({ type: 'done' })}\n\n`)
+        }
       } catch { /* skip malformed line */ }
     }
   }
-  return aiResponse
+  return { text: aiResponse, usage }
 }
 
 // Non-streaming evaluate — returns parsed JSON scores
@@ -194,11 +227,11 @@ export async function interviewRoutes(app: FastifyInstance) {
       const systemMessages: Message[] = [{ role: 'system', content: DEBUGGER_SYSTEM }, ...messages]
 
       try {
-        const aiResponse = config.GROQ_API_KEY
+        const { text: aiResponse, usage } = config.GROQ_API_KEY
           ? await streamGroq(systemMessages, readable)
           : await streamOllama(systemMessages, readable)
 
-        if (aiResponse) await logMessage(userId, module_id, 'assistant', aiResponse)
+        if (aiResponse) await logMessage(userId, module_id, 'assistant', aiResponse, usage)
       } catch (err) {
         app.log.error(err, `${provider} chat error`)
         readable.push(`data: ${JSON.stringify({ type: 'error', message: 'AI service unavailable' })}\n\n`)
@@ -218,25 +251,45 @@ export async function interviewRoutes(app: FastifyInstance) {
 
     const { module_id, code, chat_logs } = parsed.data
     const userId = req.user.id
+
+    // Aggregate real token usage for this candidate + module from the logged turns.
+    const usageRows = await sql`
+      SELECT
+        COALESCE(SUM(COALESCE(prompt_tokens, 0) + COALESCE(completion_tokens, 0)), 0)::int AS total_tokens,
+        COUNT(*) FILTER (WHERE role = 'user')::int AS turn_count
+      FROM ai_chat_logs
+      WHERE user_id = ${userId} AND module_id = ${module_id}
+    `
+    const totalTokens = (usageRows[0]?.total_tokens as number) ?? 0
+    const turnCount = (usageRows[0]?.turn_count as number) ?? 0
+    const avgPerTurn = turnCount > 0 ? Math.round(totalTokens / turnCount) : 0
+
     const chatSummary = chat_logs.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n')
-    const evalPayload = `## Submitted Code\n\`\`\`\n${code}\n\`\`\`\n\n## Chat History (${chat_logs.length} messages)\n${chatSummary}`
+    const usageBlock = `## AI-Usage Stats\n- Total tokens spent: ${totalTokens}\n- Chat turns (user prompts): ${turnCount}\n- Avg tokens per turn: ${avgPerTurn}`
+    const evalPayload = `## Submitted Code\n\`\`\`\n${code}\n\`\`\`\n\n${usageBlock}\n\n## Chat History (${chat_logs.length} messages)\n${chatSummary}`
 
     try {
       const text = await evaluateWithAI(evalPayload)
-      const scores = JSON.parse(text) as {
+      const parsedScores = JSON.parse(text) as {
         code_score: number
         prompt_score: number
         code_feedback: string
         prompt_feedback: string
         overall_feedback: string
       }
+      const scores = {
+        ...parsedScores,
+        total_tokens: totalTokens,
+        turn_count: turnCount,
+      }
 
       sql`
         INSERT INTO interview_scores
-          (user_id, module_id, code_score, prompt_score, code_feedback, prompt_feedback, overall_feedback)
+          (user_id, module_id, code_score, prompt_score, code_feedback, prompt_feedback, overall_feedback, total_tokens, turn_count)
         VALUES
           (${userId}, ${module_id}, ${scores.code_score}, ${scores.prompt_score},
-           ${scores.code_feedback}, ${scores.prompt_feedback}, ${scores.overall_feedback})
+           ${scores.code_feedback}, ${scores.prompt_feedback}, ${scores.overall_feedback},
+           ${totalTokens}, ${turnCount})
       `.catch((err: unknown) => app.log.error(err, 'Failed to save interview scores'))
 
       return reply.send(scores)
@@ -275,7 +328,7 @@ export async function interviewRoutes(app: FastifyInstance) {
     const { moduleId } = req.params as { moduleId: string }
 
     const rows = await sql`
-      SELECT user_id, code_score, prompt_score, overall_feedback, created_at
+      SELECT user_id, code_score, prompt_score, total_tokens, turn_count, overall_feedback, created_at
       FROM interview_scores
       WHERE module_id = ${moduleId}
       ORDER BY created_at DESC

@@ -31,6 +31,28 @@ interface InterviewScoreModalProps {
   onClose: () => void
 }
 
+function UsagePanel({ totalTokens, turnCount }: { totalTokens: number; turnCount: number }) {
+  const avg = turnCount > 0 ? Math.round(totalTokens / turnCount) : 0
+  const stats = [
+    { label: 'Tokens used', value: totalTokens.toLocaleString() },
+    { label: 'Chat turns', value: String(turnCount) },
+    { label: 'Avg / turn', value: avg.toLocaleString() },
+  ]
+  return (
+    <div className="rounded-lg border border-border bg-surface-raised p-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted font-mono-labels">AI Usage</p>
+      <div className="grid grid-cols-3 gap-2">
+        {stats.map((s) => (
+          <div key={s.label} className="flex flex-col">
+            <span className="text-lg font-bold text-foreground">{s.value}</span>
+            <span className="text-[11px] text-muted">{s.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function InterviewScoreModal({ scores, onClose }: InterviewScoreModalProps) {
   return (
     <Modal onClose={onClose} isOpen>
@@ -38,6 +60,10 @@ export function InterviewScoreModal({ scores, onClose }: InterviewScoreModalProp
       <div className="flex flex-col gap-5">
         <ScoreBar label="Code Quality" score={scores.code_score} />
         <ScoreBar label="Prompt Engineering" score={scores.prompt_score} />
+
+        {scores.total_tokens !== undefined && scores.turn_count !== undefined && (
+          <UsagePanel totalTokens={scores.total_tokens} turnCount={scores.turn_count} />
+        )}
 
         <div className="rounded-lg bg-surface-raised border border-border p-3">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted mb-1 font-mono-labels">Code Feedback</p>
