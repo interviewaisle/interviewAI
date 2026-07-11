@@ -28,17 +28,14 @@ export function useLoginForm() {
       return
     }
 
+    // Show a real loading state during the actual request — no artificial delay.
     setLoadingStep(0)
-    await delay(800)
-    setLoadingStep(1)
-    await delay(800)
-    setLoadingStep(2)
 
     try {
       const data = await api.auth.login({ email, password })
       setToken(data.access_token)
-      setLoadingStep(-1)
-      await delay(1600)
+      setLoadingStep(-1) // brief success tick
+      await delay(400)
       router.replace(ROUTES.HOME)
     } catch (err: unknown) {
       const cast = err as { data?: { message?: string }; message?: string }
