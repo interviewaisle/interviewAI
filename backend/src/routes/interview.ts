@@ -18,13 +18,28 @@ RULES:
 - Keep responses concise — 2-4 sentences for simple questions, up to 6 lines for technical explanations.
 - Use code snippets only when a concept genuinely requires showing syntax.`
 
-const EVALUATOR_SYSTEM = `You are an expert technical interview evaluator assessing two dimensions:
+const EVALUATOR_SYSTEM = `You are a STRICT senior engineer scoring a debugging interview. Be skeptical and discerning — do NOT inflate scores. The median attempt should land 40-60; reserve 80+ for genuinely excellent work and 90+ for near-flawless work. Fill the "reasoning" field with your analysis BEFORE assigning any score.
 
-1. CODE QUALITY (0-100): How correct, clean, and efficient is the final submitted code? If execution status is provided, weigh it heavily — code that runs cleanly should score higher; code that fails to run should be capped low.
-2. PROMPT ENGINEERING (0-100): How well did the engineer use the AI assistant? Specific, targeted questions like "Why does retrieve_context return None when the list is non-empty?" score higher than generic "fix my code". Also factor AI-USAGE EFFICIENCY: reaching the fix in few, tight exchanges with low token spend is strong; many vague, token-heavy exchanges is weak. The AI-usage stats are provided in the payload — weigh them into prompt_score and reference them in prompt_feedback.
+You are given: the ORIGINAL buggy code, the EXPECTED FIX, the candidate's SUBMITTED code, whether the code ran, AI-usage stats, and the full chat history.
 
-Respond ONLY with valid JSON matching this exact schema — no markdown, no preamble:
-{"code_score":number,"prompt_score":number,"code_feedback":"string","prompt_feedback":"string","overall_feedback":"string"}`
+## CODE QUALITY (0-100) — did they actually implement the expected fix, correctly and cleanly?
+- 0-15: SUBMITTED code is unchanged from the buggy original, or made it worse.
+- 16-40: changed something but the bug is NOT actually fixed (does not match the expected fix's intent).
+- 41-60: bug is fixed but the code is sloppy, incomplete, or introduces a new problem.
+- 61-80: correct fix, clean.
+- 81-100: correct, minimal, idiomatic; handles edge cases.
+HARD RULES: If SUBMITTED code equals the ORIGINAL buggy code ignoring whitespace, code_score MUST be ≤ 15. If execution status is FAILED and the fix requires running code, cap code_score at ≤ 40. Do not award correctness unless the change genuinely matches the EXPECTED FIX.
+
+## PROMPT ENGINEERING (0-100) — how skillfully did they use the AI to reach the fix?
+- 0-20: pasted the problem/bug description verbatim, or told the AI to "fix it / solve it / give me the code" with no specific hypothesis. This is off-loading thinking to the AI — score it near zero.
+- 21-40: vague, generic questions ("what's wrong?", "why doesn't this work?").
+- 41-60: some targeted questions mixed with noise or redundancy.
+- 61-80: specific, hypothesis-driven questions that isolate the bug efficiently.
+- 81-100: precise, minimal, expert questioning showing the candidate already understood the problem and used the AI to confirm/refine.
+HARD RULES: If ANY user message is a near-verbatim copy of the problem description, or simply asks the AI to produce the solution, prompt_score MUST be ≤ 25. Excessive tokens/turns for a simple bug lowers the score. Base this ONLY on the USER's messages, never the assistant's.
+
+Respond ONLY with valid JSON, no markdown, no preamble:
+{"reasoning":"2-4 sentences analyzing the fix correctness and the quality of the user's prompts, citing specifics","code_score":number,"prompt_score":number,"code_feedback":"specific, references what they changed vs the expected fix","prompt_feedback":"specific, quotes/paraphrases their actual prompts","overall_feedback":"string"}`
 
 const chatBody = z.object({
   module_id: z.string().uuid(),
@@ -253,6 +268,19 @@ export async function interviewRoutes(app: FastifyInstance) {
     const { module_id, code, chat_logs, ran_successfully } = parsed.data
     const userId = req.user.id
 
+    // Ground truth from the module: original bug + expected fix + problem statement.
+    const moduleRows = await sql`SELECT content_payload FROM modules WHERE id = ${module_id}`
+    const payload = (moduleRows[0]?.content_payload ?? {}) as {
+      description?: string; buggy_code?: string; expected_fix?: string
+    }
+    const buggyCode = payload.buggy_code ?? ''
+    const expectedFix = payload.expected_fix ?? ''
+    const problem = payload.description ?? ''
+
+    // Signal: is the submission unchanged from the buggy original? (whitespace-insensitive)
+    const norm = (s: string) => s.replace(/\s+/g, ' ').trim()
+    const codeUnchanged = buggyCode !== '' && norm(code) === norm(buggyCode)
+
     // Aggregate real token usage for this candidate + module from the logged turns.
     const usageRows = await sql`
       SELECT
@@ -265,24 +293,35 @@ export async function interviewRoutes(app: FastifyInstance) {
     const turnCount = (usageRows[0]?.turn_count as number) ?? 0
     const avgPerTurn = turnCount > 0 ? Math.round(totalTokens / turnCount) : 0
 
-    const chatSummary = chat_logs.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n')
+    const chatSummary = chat_logs.length
+      ? chat_logs.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n')
+      : '(the candidate never messaged the AI assistant)'
     const usageBlock = `## AI-Usage Stats\n- Total tokens spent: ${totalTokens}\n- Chat turns (user prompts): ${turnCount}\n- Avg tokens per turn: ${avgPerTurn}`
     const execBlock = ran_successfully === undefined
       ? '## Execution\n- The candidate did not run the code before submitting.'
       : `## Execution\n- The submitted code ${ran_successfully ? 'RAN SUCCESSFULLY (exit code 0).' : 'FAILED to run cleanly (non-zero exit).'}`
-    const evalPayload = `## Submitted Code\n\`\`\`\n${code}\n\`\`\`\n\n${execBlock}\n\n${usageBlock}\n\n## Chat History (${chat_logs.length} messages)\n${chatSummary}`
+    const groundTruth = [
+      problem ? `## Problem\n${problem}` : '',
+      buggyCode ? `## Original Buggy Code\n\`\`\`\n${buggyCode}\n\`\`\`` : '',
+      expectedFix ? `## Expected Fix\n${expectedFix}` : '## Expected Fix\n(not provided — judge correctness from the problem and code)',
+    ].filter(Boolean).join('\n\n')
+    const changedBlock = `## Change Detection\n- Submitted code is ${codeUnchanged ? 'IDENTICAL to the original buggy code (apply the ≤15 hard rule).' : 'different from the original buggy code.'}`
+    const evalPayload = `${groundTruth}\n\n## Candidate's Submitted Code\n\`\`\`\n${code}\n\`\`\`\n\n${changedBlock}\n\n${execBlock}\n\n${usageBlock}\n\n## Chat History (${chat_logs.length} messages)\n${chatSummary}`
 
     try {
       const text = await evaluateWithAI(evalPayload)
       const parsedScores = JSON.parse(text) as {
+        reasoning?: string
         code_score: number
         prompt_score: number
         code_feedback: string
         prompt_feedback: string
         overall_feedback: string
       }
+      const { reasoning, ...publicScores } = parsedScores
+      if (reasoning) app.log.info({ module_id, reasoning }, 'evaluation reasoning')
       const scores = {
-        ...parsedScores,
+        ...publicScores,
         total_tokens: totalTokens,
         turn_count: turnCount,
       }
