@@ -20,7 +20,7 @@ RULES:
 
 const EVALUATOR_SYSTEM = `You are an expert technical interview evaluator assessing two dimensions:
 
-1. CODE QUALITY (0-100): How correct, clean, and efficient is the final submitted code?
+1. CODE QUALITY (0-100): How correct, clean, and efficient is the final submitted code? If execution status is provided, weigh it heavily — code that runs cleanly should score higher; code that fails to run should be capped low.
 2. PROMPT ENGINEERING (0-100): How well did the engineer use the AI assistant? Specific, targeted questions like "Why does retrieve_context return None when the list is non-empty?" score higher than generic "fix my code". Also factor AI-USAGE EFFICIENCY: reaching the fix in few, tight exchanges with low token spend is strong; many vague, token-heavy exchanges is weak. The AI-usage stats are provided in the payload — weigh them into prompt_score and reference them in prompt_feedback.
 
 Respond ONLY with valid JSON matching this exact schema — no markdown, no preamble:
@@ -37,6 +37,7 @@ const chatBody = z.object({
 const evaluateBody = z.object({
   module_id: z.string().uuid(),
   code: z.string().max(20000),
+  ran_successfully: z.boolean().optional(),
   chat_logs: z.array(z.object({
     role: z.enum(['user', 'assistant']),
     content: z.string(),
@@ -249,7 +250,7 @@ export async function interviewRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'VALIDATION_ERROR', message: parsed.error.flatten() })
     }
 
-    const { module_id, code, chat_logs } = parsed.data
+    const { module_id, code, chat_logs, ran_successfully } = parsed.data
     const userId = req.user.id
 
     // Aggregate real token usage for this candidate + module from the logged turns.
@@ -266,7 +267,10 @@ export async function interviewRoutes(app: FastifyInstance) {
 
     const chatSummary = chat_logs.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n')
     const usageBlock = `## AI-Usage Stats\n- Total tokens spent: ${totalTokens}\n- Chat turns (user prompts): ${turnCount}\n- Avg tokens per turn: ${avgPerTurn}`
-    const evalPayload = `## Submitted Code\n\`\`\`\n${code}\n\`\`\`\n\n${usageBlock}\n\n## Chat History (${chat_logs.length} messages)\n${chatSummary}`
+    const execBlock = ran_successfully === undefined
+      ? '## Execution\n- The candidate did not run the code before submitting.'
+      : `## Execution\n- The submitted code ${ran_successfully ? 'RAN SUCCESSFULLY (exit code 0).' : 'FAILED to run cleanly (non-zero exit).'}`
+    const evalPayload = `## Submitted Code\n\`\`\`\n${code}\n\`\`\`\n\n${execBlock}\n\n${usageBlock}\n\n## Chat History (${chat_logs.length} messages)\n${chatSummary}`
 
     try {
       const text = await evaluateWithAI(evalPayload)

@@ -61,7 +61,7 @@ export const api = {
       }),
   },
   interview: {
-    evaluate: (body: { module_id: string; code: string; chat_logs: ChatMessage[] }) =>
+    evaluate: (body: { module_id: string; code: string; chat_logs: ChatMessage[]; ran_successfully?: boolean }) =>
       apiFetch<DualScore>('/api/v1/interview/evaluate', {
         method: 'POST',
         body: JSON.stringify(body),

@@ -12,6 +12,7 @@ import { api } from '@/lib/api'
 import { useWorkspace } from '@/store/workspace'
 import { useExecution } from '@/hooks/useExecution'
 import { useAutosave, loadDraft, clearDraft } from '@/hooks/useAutosave'
+import { getNextModule } from '@/lib/moduleNav'
 import Link from 'next/link'
 import { PlatformHeader } from '@/components/layout'
 import { ROUTES } from '@/constants'
@@ -39,12 +40,15 @@ const STATUS_LABEL: Record<string, string> = {
   ERROR: 'Run',
 }
 
-export function CodingModule({ module }: CodingModuleProps) {
+export function CodingModule({ module, allModules }: CodingModuleProps) {
   const termRef = useRef<TerminalHandle | null>(null)
   const { activeFileId, setActiveFile, upsertFile, files } = useWorkspace()
   const { run, status } = useExecution(termRef)
   const [paywallMessage, setPaywallMessage] = useState<string | null>(null)
   const [hasDraft, setHasDraft] = useState(false)
+  const [solved, setSolved] = useState(false)
+
+  const nextModule = getNextModule(allModules, module.id)
 
   const { starter_files: starterFiles = [] } = module.content_payload as {
     starter_files?: SubmissionFile[]
@@ -92,6 +96,7 @@ export function CodingModule({ module }: CodingModuleProps) {
       // A clean run counts as completing the coding module.
       if (result?.exit_code === 0) {
         api.tracks.complete(module.track_id, module.id).catch(() => {})
+        setSolved(true)
       }
     } catch (err) {
       const e = err as { status?: number; data?: { message?: string } }
@@ -127,15 +132,29 @@ export function CodingModule({ module }: CodingModuleProps) {
           </>
         }
         rightExtra={
-          <Button
-            variant="primary"
-            isLoading={isRunning}
-            disabled={isRunning}
-            onClick={handleRun}
-            className="text-xs"
-          >
-            {STATUS_LABEL[status] ?? 'Run'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={solved ? 'ghost' : 'primary'}
+              isLoading={isRunning}
+              disabled={isRunning}
+              onClick={handleRun}
+              className="text-xs"
+            >
+              {STATUS_LABEL[status] ?? 'Run'}
+            </Button>
+            {nextModule && (
+              <Link
+                href={ROUTES.MODULE_DETAIL(module.track_id, nextModule.id)}
+                className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
+                  solved
+                    ? 'bg-primary text-white hover:bg-primary-hover'
+                    : 'border border-border text-foreground hover:bg-surface-raised'
+                }`}
+              >
+                Next →
+              </Link>
+            )}
+          </div>
         }
       />
 
@@ -161,6 +180,27 @@ export function CodingModule({ module }: CodingModuleProps) {
           <p className="text-sm text-foreground">{description}</p>
         </aside>
       </div>
+
+      {solved && (
+        <div className="fade-in pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-xl border border-success/40 bg-surface-raised px-5 py-3 shadow-xl">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-success/15 text-success">✓</span>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Solved! +100 XP</p>
+              <p className="text-xs text-muted">Your code ran clean — module complete.</p>
+            </div>
+            {nextModule && (
+              <Link
+                href={ROUTES.MODULE_DETAIL(module.track_id, nextModule.id)}
+                className="ml-2 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary-hover"
+              >
+                Next module →
+              </Link>
+            )}
+            <button onClick={() => setSolved(false)} className="ml-1 text-muted hover:text-foreground" aria-label="Dismiss">✕</button>
+          </div>
+        </div>
+      )}
 
       <PaywallModal
         isOpen={paywallMessage !== null}

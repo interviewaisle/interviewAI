@@ -9,8 +9,11 @@ import { Button } from '@/components/ui/Button'
 import { PlatformHeader } from '@/components/layout'
 import { useWorkspace } from '@/store/workspace'
 import { useInterviewChat } from '@/hooks/useInterviewChat'
+import { useExecution } from '@/hooks/useExecution'
+import { getNextModule } from '@/lib/moduleNav'
 import { api } from '@/lib/api'
 import { ROUTES } from '@/constants'
+import type { TerminalHandle } from '@/components/editor/Terminal'
 import { InterviewChallengePane } from './InterviewChallengePane'
 import { InterviewAISidebar } from './InterviewAISidebar'
 import { InterviewScoreModal } from './InterviewScoreModal'
@@ -19,6 +22,17 @@ const MonacoDynamic = dynamic(
   () => import('@/components/editor/MonacoEditor').then(m => m.MonacoEditor),
   { ssr: false }
 ) as typeof MonacoEditor
+
+const TerminalDynamic = dynamic(
+  () => import('@/components/editor/Terminal').then((m) => m.Terminal),
+  { ssr: false }
+) as React.ForwardRefExoticComponent<
+  { className?: string } & React.RefAttributes<TerminalHandle>
+>
+
+const RUN_LABEL: Record<string, string> = {
+  IDLE: 'Run', BUILDING: 'Running…', RUNNING: 'Running…', STREAMING: 'Running…', ERROR: 'Run',
+}
 
 interface InterviewModuleProps {
   module: Module
@@ -35,12 +49,18 @@ interface ChallengePayload {
   language?: string
 }
 
-export function InterviewModule({ module }: InterviewModuleProps) {
+export function InterviewModule({ module, allModules }: InterviewModuleProps) {
   const { upsertFile, files } = useWorkspace()
   const { messages, isStreaming, sendMessage } = useInterviewChat()
+  const termRef = useRef<TerminalHandle | null>(null)
+  const { run, status } = useExecution(termRef)
   const [isEvaluating, setIsEvaluating] = useState(false)
   const [scores, setScores] = useState<DualScore | null>(null)
+  const [ranSuccessfully, setRanSuccessfully] = useState<boolean | undefined>(undefined)
   const seededRef = useRef(false)
+
+  const nextModule = getNextModule(allModules, module.id)
+  const isRunning = status === 'BUILDING' || status === 'RUNNING' || status === 'STREAMING'
 
   const payload = module.content_payload as ChallengePayload
   const title = payload.title ?? 'Interview Challenge'
@@ -58,6 +78,16 @@ export function InterviewModule({ module }: InterviewModuleProps) {
     upsertFile(fileName, { content: buggyCode, isDirty: false, language })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function handleRun() {
+    const currentCode = files[fileName]?.content ?? buggyCode
+    try {
+      const result = await run([{ name: fileName, content: currentCode }], module.id, module.stage_index, module.track_id)
+      if (result) setRanSuccessfully(result.exit_code === 0)
+    } catch {
+      // 402/errors handled inside useExecution
+    }
+  }
+
   async function handleEvaluate() {
     setIsEvaluating(true)
     try {
@@ -66,6 +96,7 @@ export function InterviewModule({ module }: InterviewModuleProps) {
         module_id: module.id,
         code: currentCode,
         chat_logs: messages,
+        ran_successfully: ranSuccessfully,
       })
       setScores(result)
       // Scoring the interview counts as completing the module.
@@ -89,23 +120,47 @@ export function InterviewModule({ module }: InterviewModuleProps) {
           </>
         }
         rightExtra={
-          <Button
-            variant="primary"
-            onClick={handleEvaluate}
-            disabled={isEvaluating || messages.length === 0}
-            isLoading={isEvaluating}
-            className="text-xs"
-          >
-            Submit &amp; Score
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={handleRun}
+              disabled={isRunning}
+              isLoading={isRunning}
+              className="text-xs"
+            >
+              {RUN_LABEL[status] ?? 'Run'}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleEvaluate}
+              disabled={isEvaluating || messages.length === 0}
+              isLoading={isEvaluating}
+              className="text-xs"
+            >
+              Submit &amp; Score
+            </Button>
+            {nextModule && (
+              <Link
+                href={ROUTES.MODULE_DETAIL(module.track_id, nextModule.id)}
+                className="rounded-lg border border-border px-3.5 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-surface-raised"
+              >
+                Next →
+              </Link>
+            )}
+          </div>
         }
       />
 
       <div className="flex flex-1 overflow-hidden">
         <InterviewChallengePane title={title} difficulty={difficulty} description={description} />
 
-        <div className="flex flex-1 overflow-hidden">
-          <MonacoDynamic starterFiles={starterFiles} activeFileId={fileName} />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex-1 overflow-hidden">
+            <MonacoDynamic starterFiles={starterFiles} activeFileId={fileName} />
+          </div>
+          <div className="h-40 flex-shrink-0 border-t border-border">
+            <TerminalDynamic ref={termRef} className="bg-surface" />
+          </div>
         </div>
 
         <InterviewAISidebar

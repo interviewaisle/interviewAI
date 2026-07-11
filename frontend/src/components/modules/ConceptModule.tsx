@@ -6,6 +6,7 @@ import { useModuleCompletion } from '@/hooks/useModuleCompletion'
 import { Button } from '@/components/ui'
 import { PlatformHeader } from '@/components/layout'
 import { ModuleSidebar } from './ModuleSidebar'
+import { getNextModule } from '@/lib/moduleNav'
 import { ROUTES } from '@/constants'
 import type { Module, TrackProgress, User } from '@/types'
 
@@ -37,6 +38,7 @@ export function ConceptModule({ module, allModules, progress, user }: ConceptMod
       : progress.completed_modules
 
   const content = (module.content_payload as { content?: string }).content ?? ''
+  const nextModule = getNextModule(allModules, module.id)
 
   return (
     <div className="bg-surface flex h-screen flex-col overflow-hidden">
@@ -62,7 +64,7 @@ export function ConceptModule({ module, allModules, progress, user }: ConceptMod
           <article className="prose dark:prose-invert max-w-none">
             <ReactMarkdown>{content}</ReactMarkdown>
           </article>
-          <div className="mt-10 border-t border-border pt-8">
+          <div className="mt-10 flex items-center gap-4 border-t border-border pt-8">
             {isCompleted ? (
               <p className="flex items-center gap-2 text-sm text-success">
                 <CompleteIcon />
@@ -72,6 +74,16 @@ export function ConceptModule({ module, allModules, progress, user }: ConceptMod
               <Button variant="primary" onClick={markComplete}>
                 Mark Complete
               </Button>
+            )}
+            {nextModule && (
+              <Link
+                href={ROUTES.MODULE_DETAIL(module.track_id, nextModule.id)}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                  isCompleted ? 'bg-primary text-white hover:bg-primary-hover' : 'border border-border text-foreground hover:bg-surface-raised'
+                }`}
+              >
+                Next module →
+              </Link>
             )}
           </div>
         </div>
