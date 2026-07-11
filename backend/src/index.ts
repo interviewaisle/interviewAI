@@ -14,9 +14,14 @@ import { startHydrationWorker } from './workers/hydration'
 const server = Fastify({ logger: true })
 
 const allowedOrigins = config.CORS_ORIGIN.split(',').map((o) => o.trim())
+// Allow the configured origins plus any Vercel URL for this project (production
+// alias + per-deployment preview URLs). Safe because auth is a Bearer token in
+// localStorage, not a cookie — a foreign origin can't read it cross-site.
 server.register(cors, {
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true)
+    if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
+      return cb(null, true)
+    }
     cb(new Error('Not allowed by CORS'), false)
   },
   credentials: true,
