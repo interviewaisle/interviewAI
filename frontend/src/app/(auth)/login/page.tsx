@@ -1,10 +1,11 @@
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useLoginForm } from '@/hooks/useLoginForm'
+import { warmBackend } from '@/lib/warmup'
 import { ROUTES } from '@/constants'
 import { Button, ErrorBoundary, GradientText, ThemeToggle } from '@/components/ui'
 import { AuthInput } from '@/components/auth'
@@ -19,7 +20,10 @@ const LOGIN_STEPS = ['Verifying credentials...', 'Connecting to AI Core...', 'La
 function LoginContent() {
   const searchParams = useSearchParams()
   const registered = searchParams.get('registered') === '1'
-  const { email, setEmail, password, setPassword, error, isLoading, loadingStep, onSubmit } = useLoginForm()
+  const { email, setEmail, password, setPassword, error, isLoading, loadingStep, slowHint, onSubmit } = useLoginForm()
+
+  // Wake the free-tier backend while the user types, so login isn't blocked by a cold start.
+  useEffect(() => { warmBackend() }, [])
 
   return (
     <div className="page-bg relative h-screen flex flex-col overflow-hidden">
@@ -82,6 +86,12 @@ function LoginContent() {
             >
               {loadingStep === -1 ? 'Signed in!' : 'Sign In'}
             </Button>
+
+            {slowHint && (
+              <p className="text-center text-xs text-muted">
+                Waking up the server — the free tier can take up to a minute after a period of inactivity.
+              </p>
+            )}
           </form>
 
           <p className="text-center text-sm text-muted mt-5">

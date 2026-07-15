@@ -17,6 +17,7 @@ export function useSignupForm() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loadingStep, setLoadingStep] = useState<number | null>(null)
+  const [slowHint, setSlowHint] = useState(false)
 
   const isLoading = loadingStep !== null && loadingStep !== -1
 
@@ -39,13 +40,19 @@ export function useSignupForm() {
 
     // Real loading state during the actual request — no artificial delay.
     setLoadingStep(0)
+    setSlowHint(false)
+    const slowTimer = setTimeout(() => setSlowHint(true), 3000)
 
     try {
       await api.auth.signup({ email, password })
+      clearTimeout(slowTimer)
+      setSlowHint(false)
       setLoadingStep(-1) // brief success tick
       await delay(400)
       router.replace(ROUTES.LOGIN + '?registered=1')
     } catch (err: unknown) {
+      clearTimeout(slowTimer)
+      setSlowHint(false)
       const cast = err as { data?: { message?: string }; message?: string }
       setError(cast.data?.message ?? cast.message ?? 'Signup failed')
       setLoadingStep(null)
@@ -57,6 +64,6 @@ export function useSignupForm() {
     email, setEmail,
     password, setPassword,
     confirmPassword, setConfirmPassword,
-    error, isLoading, loadingStep, onSubmit,
+    error, isLoading, loadingStep, slowHint, onSubmit,
   }
 }

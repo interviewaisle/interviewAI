@@ -1,8 +1,10 @@
 'use client'
 
+import { useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useSignupForm } from '@/hooks/useSignupForm'
+import { warmBackend } from '@/lib/warmup'
 import { ROUTES } from '@/constants'
 import { Button, ErrorBoundary, GradientText, ThemeToggle } from '@/components/ui'
 import { AuthInput, PasswordStrengthMeter } from '@/components/auth'
@@ -18,8 +20,10 @@ function SignupContent() {
     email, setEmail,
     password, setPassword,
     confirmPassword, setConfirmPassword,
-    error, isLoading, loadingStep, onSubmit,
+    error, isLoading, loadingStep, slowHint, onSubmit,
   } = useSignupForm()
+
+  useEffect(() => { warmBackend() }, [])
 
   return (
     <div className="page-bg relative h-screen flex flex-col overflow-hidden">
@@ -97,6 +101,12 @@ function SignupContent() {
             >
               {loadingStep === -1 ? 'Account created!' : 'Create Account'}
             </Button>
+
+            {slowHint && (
+              <p className="text-center text-xs text-muted">
+                Waking up the server — the free tier can take up to a minute after a period of inactivity.
+              </p>
+            )}
           </form>
 
           <p className="text-center text-sm text-muted mt-5">
