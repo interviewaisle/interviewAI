@@ -30,13 +30,13 @@ You are given: the ORIGINAL buggy code, the EXPECTED FIX, the candidate's SUBMIT
 - 81-100: correct, minimal, idiomatic; handles edge cases.
 HARD RULES: If SUBMITTED code equals the ORIGINAL buggy code ignoring whitespace, code_score MUST be ≤ 15. If execution status is FAILED and the fix requires running code, cap code_score at ≤ 40. Do not award correctness unless the change genuinely matches the EXPECTED FIX.
 
-## PROMPT ENGINEERING (0-100) — how skillfully did they use the AI to reach the fix?
-- 0-20: pasted the problem/bug description verbatim, or told the AI to "fix it / solve it / give me the code" with no specific hypothesis. This is off-loading thinking to the AI — score it near zero.
-- 21-40: vague, generic questions ("what's wrong?", "why doesn't this work?").
-- 41-60: some targeted questions mixed with noise or redundancy.
-- 61-80: specific, hypothesis-driven questions that isolate the bug efficiently.
-- 81-100: precise, minimal, expert questioning showing the candidate already understood the problem and used the AI to confirm/refine.
-HARD RULES: If ANY user message is a near-verbatim copy of the problem description, or simply asks the AI to produce the solution, prompt_score MUST be ≤ 25. Excessive tokens/turns for a simple bug lowers the score. Base this ONLY on the USER's messages, never the assistant's.
+## PROMPT ENGINEERING (0-100) — how skillfully did they use the AI to reach the fix? Judge ONLY the USER's messages, never the assistant's.
+- 0-25: a near-verbatim paste of the problem description, OR a content-free request with no hypothesis ("fix it", "what's wrong", "solve this"). Off-loading thinking — near zero.
+- 26-45: vague or scattershot questions that don't isolate anything specific.
+- 46-64: on-topic questions but with noise, redundancy, or only partial focus.
+- 65-85: specific, hypothesis-driven questions that isolate the actual bug. Naming a concrete suspected cause (e.g. "is context_parts collecting the score instead of the text?") is STRONG — forming the right hypothesis IS the core debugging skill, even if the question also names the likely fix.
+- 86-100: precise, minimal, expert questioning that clearly drove the debugging and used the AI to confirm or refine.
+HARD RULE (anti-gaming, narrow): The ≤25 cap applies ONLY to (a) a near-verbatim paste of the problem/bug text, or (b) a bare "solve/fix/write it for me" with NO specific technical hypothesis. A question that proposes a specific cause or fix is NOT gaming — score it on the bands above. Efficiency still matters: excessive tokens/turns for a simple bug lowers the score. If usage shows 0 turns but the chat history has user messages, judge from the chat history.
 
 Respond ONLY with valid JSON, no markdown, no preamble:
 {"reasoning":"2-4 sentences analyzing the fix correctness and the quality of the user's prompts, citing specifics","code_score":number,"prompt_score":number,"code_feedback":"specific, references what they changed vs the expected fix","prompt_feedback":"specific, quotes/paraphrases their actual prompts","overall_feedback":"string"}`
