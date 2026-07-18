@@ -49,7 +49,7 @@ export function useSignupForm() {
       setSlowHint(false)
       setLoadingStep(-1) // brief success tick
       await delay(400)
-      router.replace(ROUTES.LOGIN + '?registered=1')
+      router.replace(`${ROUTES.LANDING}?auth=login&registered=1`)
     } catch (err: unknown) {
       clearTimeout(slowTimer)
       setSlowHint(false)
