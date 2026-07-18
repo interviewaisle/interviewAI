@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getToken } from '@/lib/auth'
 import { ROUTES } from '@/constants'
+import { AuthModal } from '@/components/auth'
 import { LandingNav } from './LandingNav'
 import { LandingHero } from './LandingHero'
 import { FeatureGrid } from './FeatureGrid'
@@ -36,6 +37,7 @@ export function LandingPage() {
         <LandingHero />
         <FeatureGrid />
       </main>
+      <AuthModal />
     </div>
   )
 }

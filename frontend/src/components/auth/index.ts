@@ -1,5 +1,8 @@
 export { AuthDivider } from './AuthDivider'
 export { AuthInput } from './AuthInput'
+export { AuthModal } from './AuthModal'
 export { AuthOAuthRow } from './AuthOAuthRow'
+export { LoginForm } from './LoginForm'
 export { NeuralCanvas } from './NeuralCanvas'
 export { PasswordStrengthMeter } from './PasswordStrengthMeter'
+export { SignupForm } from './SignupForm'
