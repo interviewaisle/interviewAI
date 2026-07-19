@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getToken } from '@/lib/auth'
+import { warmBackend } from '@/lib/warmup'
 import { ROUTES } from '@/constants'
 import { AuthModal } from '@/components/auth'
 import { LandingNav } from './LandingNav'
@@ -19,6 +20,9 @@ export function LandingPage() {
       router.replace(ROUTES.HOME)
     } else {
       setChecked(true)
+      // Pre-warm the free-tier backend while the visitor reads the page / opens
+      // the auth dialog, so login isn't blocked by a cold start.
+      warmBackend()
     }
   }, [router])
 
