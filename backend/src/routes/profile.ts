@@ -8,6 +8,7 @@ const XP_PER_LEVEL = 500
 type CompletedRow = { module_id: string; completed_at: string; track_id: string; tier_type: string; track_name: string }
 type ScoreRow = { code_score: number; prompt_score: number; total_tokens: number | null; turn_count: number | null; created_at: string }
 type TrackRow = { id: string; name: string; total: number }
+type LeaderboardRow = { id: string; display_name: string | null; completed_count: number; score_points: number }
 
 function ymd(d: Date): string {
   return d.toISOString().slice(0, 10)
@@ -87,6 +88,10 @@ export async function profileRoutes(app: FastifyInstance) {
       { id: 'debugger', label: 'Debugger', description: 'Take an AI interview', earned: scores.length >= 1 },
       { id: 'sharp_prompter', label: 'Sharp Prompter', description: 'Score 80+ on prompt engineering', earned: scores.some((s) => s.prompt_score >= 80) },
       { id: 'perfectionist', label: 'Perfectionist', description: 'Score 90+ on code quality', earned: scores.some((s) => s.code_score >= 90) },
+      { id: 'track_master', label: 'Track Master', description: 'Complete every module in a track', earned: trackProgress.some((t) => t.total > 0 && t.completed === t.total) },
+      { id: 'week_streak', label: 'Week Streak', description: 'Keep a 7-day activity streak', earned: streakDays >= 7 },
+      { id: 'dedicated', label: 'Dedicated', description: 'Keep a 30-day activity streak', earned: streakDays >= 30 },
+      { id: 'renaissance', label: 'Renaissance', description: 'Score 80+ on both code and prompt in one interview', earned: scores.some((s) => s.code_score >= 80 && s.prompt_score >= 80) },
     ]
 
     // Recent activity feed
@@ -119,5 +124,36 @@ export async function profileRoutes(app: FastifyInstance) {
       badges,
       activity,
     })
+  })
+
+  app.get('/leaderboard', { preHandler: authenticate }, async (req, reply) => {
+    const uid = req.user.id
+
+    const rows = (await sql`
+      SELECT u.id, u.display_name,
+             COUNT(DISTINCT up.id)::int AS completed_count,
+             COALESCE(SUM(isc.code_score + isc.prompt_score), 0)::int AS score_points
+      FROM users u
+      LEFT JOIN user_progress up ON up.user_id = u.id
+      LEFT JOIN interview_scores isc ON isc.user_id = u.id
+      GROUP BY u.id
+    `) as unknown as LeaderboardRow[]
+
+    const leaderboard = rows
+      .map((r) => {
+        const xp = r.completed_count * XP_PER_MODULE + r.score_points
+        return { id: r.id, display_name: r.display_name, xp, level: Math.floor(xp / XP_PER_LEVEL) + 1 }
+      })
+      .sort((a, b) => b.xp - a.xp)
+      .slice(0, 20)
+      .map((r, i) => ({
+        rank: i + 1,
+        display_name: r.display_name ?? 'Anonymous',
+        xp: r.xp,
+        level: r.level,
+        is_current_user: r.id === uid,
+      }))
+
+    return reply.send(leaderboard)
   })
 }

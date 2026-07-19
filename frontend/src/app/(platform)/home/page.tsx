@@ -23,13 +23,14 @@ function HomeInner() {
   }, [])
 
   const user = state?.user
-  const initial = user?.email?.[0] ?? '?'
+  const displayLabel = user?.display_name ?? user?.email
+  const initial = displayLabel?.[0] ?? '?'
   const firstTrack = state?.tracks[0]
-  const greetingName = user?.email?.split('@')[0] ?? 'there'
+  const greetingName = user?.display_name ?? user?.email?.split('@')[0] ?? 'there'
 
   return (
     <div className="page-bg min-h-screen">
-      <PlatformHeader userInitial={initial} userEmail={user?.email} activeNav="home" />
+      <PlatformHeader userInitial={initial} userEmail={displayLabel} activeNav="home" />
 
       <main className="relative z-10 mx-auto" style={{ maxWidth: 1000, padding: '106px 28px 80px' }}>
         <h1 className="text-3xl font-extrabold tracking-[-0.025em] text-foreground md:text-[40px]">

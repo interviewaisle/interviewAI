@@ -1,5 +1,6 @@
 import { getToken } from '@/lib/auth'
-import type { Track, Module, TrackProgress, User, SubmissionBody, SubmissionResult, ChatMessage, DualScore, ProfileStats } from '@/types'
+import { API_PATHS } from '@/constants'
+import type { Track, Module, TrackProgress, User, SubmissionBody, SubmissionResult, ChatMessage, DualScore, ProfileStats, LeaderboardEntry } from '@/types'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
@@ -38,6 +39,13 @@ export const api = {
         { method: 'POST', body: JSON.stringify(body) }
       ),
     me: () => apiFetch<User>('/api/v1/auth/me'),
+    updateProfile: (body: { display_name: string }) =>
+      apiFetch<User>(API_PATHS.AUTH_ME, { method: 'PATCH', body: JSON.stringify(body) }),
+    changePassword: (body: { current_password: string; new_password: string }) =>
+      apiFetch<{ ok: boolean }>(API_PATHS.AUTH_CHANGE_PASSWORD, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
   },
   tracks: {
     list: () => apiFetch<Track[]>('/api/v1/tracks'),
@@ -52,6 +60,7 @@ export const api = {
   },
   profile: {
     stats: () => apiFetch<ProfileStats>('/api/v1/profile/stats'),
+    leaderboard: () => apiFetch<LeaderboardEntry[]>(API_PATHS.PROFILE_LEADERBOARD),
   },
   submissions: {
     run: (body: SubmissionBody) =>

@@ -211,7 +211,7 @@ function TrackDetailPage() {
 
   useEffect(() => {
     api.auth.me()
-      .then(user => setUserInitial(user.email.charAt(0).toUpperCase()))
+      .then(user => setUserInitial((user.display_name ?? user.email).charAt(0).toUpperCase()))
       .catch(() => {})
   }, [params.trackId])
 
