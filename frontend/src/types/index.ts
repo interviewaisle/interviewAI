@@ -1,6 +1,7 @@
 export interface User {
   id: string
   email: string
+  display_name: string | null
   subscription_status: 'FREE' | 'ACTIVE_PRO' | 'CANCELLED'
   created_at: string
 }
@@ -89,6 +90,14 @@ export interface ProfileStats {
   tracks: { track_id: string; name: string; completed: number; total: number; pct: number }[]
   badges: { id: string; label: string; description: string; earned: boolean }[]
   activity: { type: 'module' | 'interview'; label: string; at: string }[]
+}
+
+export interface LeaderboardEntry {
+  rank: number
+  display_name: string
+  xp: number
+  level: number
+  is_current_user: boolean
 }
 
 export type WsFrame =

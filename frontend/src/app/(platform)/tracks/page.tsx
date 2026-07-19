@@ -81,8 +81,9 @@ function TracksPageContent() {
   useEffect(() => {
     api.auth.me()
       .then(user => {
-        setUserInitial(user.email.charAt(0).toUpperCase())
-        setUserEmail(user.email)
+        const label = user.display_name ?? user.email
+        setUserInitial(label.charAt(0).toUpperCase())
+        setUserEmail(label)
       })
       .catch(() => {})
   }, [])
