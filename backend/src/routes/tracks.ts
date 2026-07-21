@@ -24,7 +24,7 @@ export async function tracksRoutes(app: FastifyInstance) {
       JOIN modules m ON m.id = up.module_id
       WHERE up.user_id = ${req.user.id}
         AND m.track_id = ${trackId}
-      ORDER BY m.stage_index ASC
+      ORDER BY m.stage_index ASC, m.created_at ASC
     `
 
     const completedModules = progress.map(p => p.module_id as string)
@@ -42,7 +42,7 @@ export async function tracksRoutes(app: FastifyInstance) {
       SELECT id, track_id, stage_index, tier_type, company_tags, content_payload, created_at
       FROM modules
       WHERE track_id = ${trackId}
-      ORDER BY stage_index ASC
+      ORDER BY stage_index ASC, created_at ASC
     `
 
     return reply.send(modules)
