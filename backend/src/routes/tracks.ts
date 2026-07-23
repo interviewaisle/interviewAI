@@ -24,7 +24,7 @@ export async function tracksRoutes(app: FastifyInstance) {
       JOIN modules m ON m.id = up.module_id
       WHERE up.user_id = ${req.user.id}
         AND m.track_id = ${trackId}
-      ORDER BY m.stage_index ASC
+      ORDER BY m.stage_index ASC, m.created_at ASC
     `
 
     const completedModules = progress.map(p => p.module_id as string)
@@ -42,10 +42,23 @@ export async function tracksRoutes(app: FastifyInstance) {
       SELECT id, track_id, stage_index, tier_type, company_tags, content_payload, created_at
       FROM modules
       WHERE track_id = ${trackId}
-      ORDER BY stage_index ASC
+      ORDER BY stage_index ASC, created_at ASC
     `
 
-    return reply.send(modules)
+    const [user] = await sql`
+      SELECT subscription_status FROM users WHERE id = ${req.user.id}
+    `
+    const isPro = user?.subscription_status === 'ACTIVE_PRO'
+
+    // FREE users get title-only content_payload for locked (stage >= 2) modules —
+    // the full lesson/bug content must never reach the client until it's paid for.
+    const safeModules = modules.map(m => {
+      if (isPro || (m.stage_index as number) <= 1) return m
+      const title = (m.content_payload as { title?: string })?.title ?? null
+      return { ...m, content_payload: { title } }
+    })
+
+    return reply.send(safeModules)
   })
 
   // Persist a module completion (idempotent).

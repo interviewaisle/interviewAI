@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { notFound } from 'next/navigation'
 import { api } from '@/lib/api'
 import { clearToken } from '@/lib/auth'
@@ -33,6 +33,7 @@ interface ModulePageData {
 
 function ModulePageContent() {
   const { trackId, moduleId } = useParams<{ trackId: string; moduleId: string }>()
+  const router = useRouter()
   const [data, setData] = useState<ModulePageData | null>(null)
   const [notFoundFlag, setNotFoundFlag] = useState(false)
 
@@ -46,6 +47,11 @@ function ModulePageContent() {
         const module = modules.find(m => m.id === moduleId)
         if (!module) {
           setNotFoundFlag(true)
+          return
+        }
+        const isLocked = user.subscription_status === 'FREE' && module.stage_index > 1
+        if (isLocked) {
+          router.replace(ROUTES.TRACK_DETAIL(trackId))
           return
         }
         setData({ modules, module, progress, user })
