@@ -3,6 +3,7 @@ import { Readable } from 'node:stream'
 import { z } from 'zod'
 import { sql } from '../db/client'
 import { authenticate } from '../middleware/auth'
+import { entitlementGuard } from '../middleware/entitlement'
 import { config } from '../config'
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1'
@@ -220,7 +221,7 @@ export async function interviewRoutes(app: FastifyInstance) {
   app.log.info(`Interview AI provider: ${provider}`)
 
   // SSE streaming chat — logs user prompt + AI response to DB
-  app.post('/chat', { preHandler: [authenticate] }, async (req, reply) => {
+  app.post('/chat', { preHandler: [authenticate, entitlementGuard()] }, async (req, reply) => {
     const parsed = chatBody.safeParse(req.body)
     if (!parsed.success) {
       return reply.status(400).send({ error: 'VALIDATION_ERROR', message: parsed.error.flatten() })
@@ -259,7 +260,7 @@ export async function interviewRoutes(app: FastifyInstance) {
   })
 
   // LLM-as-judge evaluation — saves scores to DB
-  app.post('/evaluate', { preHandler: [authenticate] }, async (req, reply) => {
+  app.post('/evaluate', { preHandler: [authenticate, entitlementGuard()] }, async (req, reply) => {
     const parsed = evaluateBody.safeParse(req.body)
     if (!parsed.success) {
       return reply.status(400).send({ error: 'VALIDATION_ERROR', message: parsed.error.flatten() })
