@@ -116,11 +116,11 @@ A system can have perfect retrieval (recall@k = 1.0) and still produce unfaithfu
     language: 'python',
     description: `## The Bug
 
-The faithfulness scorer is supposed to flag answers that contain claims not supported by the retrieved context. It never flags anything — every answer scores as "faithful," even ones that are obviously fabricated.
+The faithfulness scorer is supposed to flag answers that contain claims not supported by the retrieved context. Instead, it flags **everything** as unfaithful — even claims that are fully and directly supported by the context, word for word.
 
 ## Task
 
-Use the **AI Debugging Assistant** to find why unsupported claims are never caught. The bug is in the containment check.
+Use the **AI Debugging Assistant** to find why well-supported claims are still flagged as unfaithful. The bug is in the containment check.
 
 ## Constraints
 
@@ -137,7 +137,7 @@ Use the **AI Debugging Assistant** to find why unsupported claims are never caug
 
 if __name__ == "__main__":
     ctx = "the eiffel tower was completed in 1889 and stands 330 meters tall."
-    print(is_faithful("the eiffel tower is 330 meters tall", ctx))       # should be True
+    print(is_faithful("stands 330 meters tall", ctx))                    # should be True
     print(is_faithful("the eiffel tower was built by aliens", ctx))      # should be False
 `,
     expected_fix: 'The containment check is backwards: it tests `context in claim` instead of checking the claim against the context. A substring check alone is too strict for real claims (paraphrases won\'t match), so the fix should check whether the claim\'s key terms/content are present in the context — e.g. `claim in context` for near-verbatim cases, or a proper entailment/similarity check for paraphrased claims.',
