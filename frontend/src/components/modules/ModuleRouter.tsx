@@ -13,14 +13,18 @@ interface ModuleRouterProps {
 
 export function ModuleRouter({ module, allModules, progress, user }: ModuleRouterProps) {
   const shared = { module, allModules, progress, user }
+  // key={module.id} forces a full remount when navigating between two
+  // modules of the same tier_type — without it, CodingModule/InterviewModule
+  // reuse the same instance and their "seed once on mount" effects never
+  // re-run, leaving Monaco showing the previous module's stale file content.
   switch (module.tier_type) {
     case 'CONCEPT':
-      return <ConceptModule {...shared} />
+      return <ConceptModule key={module.id} {...shared} />
     case 'CODING':
-      return <CodingModule {...shared} />
+      return <CodingModule key={module.id} {...shared} />
     case 'SIMULATOR':
-      return <SimulatorModule {...shared} />
+      return <SimulatorModule key={module.id} {...shared} />
     case 'INTERVIEW':
-      return <InterviewModule {...shared} />
+      return <InterviewModule key={module.id} {...shared} />
   }
 }
