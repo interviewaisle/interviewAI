@@ -97,8 +97,13 @@ export function MonacoEditor({ starterFiles, activeFileId }: MonacoEditorProps) 
   useEffect(() => {
     const debounce = debounceRef
     const models = modelsRef
+    const editorRefAtMount = editorRef
     return () => {
       if (debounce.current) clearTimeout(debounce.current)
+      // Detach the model before disposing it — otherwise the editor's view
+      // can still hold a reference to a model that just got disposed, and a
+      // queued resize/layout callback crashes trying to read from it.
+      editorRefAtMount.current?.setModel(null)
       models.current.forEach((m) => m.dispose())
     }
   }, [])
